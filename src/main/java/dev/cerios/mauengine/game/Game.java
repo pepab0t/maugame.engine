@@ -1,34 +1,26 @@
 package dev.cerios.mauengine.game;
 
-import dev.cerios.mauengine.entity.GameState;
-import dev.cerios.mauengine.exception.GameException;
-import dev.cerios.mauengine.exception.PlayerMoveException;
-import dev.cerios.mauengine.game.action.Action;
 import dev.cerios.mauengine.game.move.DrawMove;
 import dev.cerios.mauengine.game.move.PassMove;
 import dev.cerios.mauengine.game.move.PlayCardMove;
+import dev.cerios.mauengine.game.move.PlayerMove;
+import dev.cerios.mauengine.game.move.dto.DrawDto;
+import dev.cerios.mauengine.game.move.dto.MoveDto;
+import dev.cerios.mauengine.game.move.dto.PassDto;
+import dev.cerios.mauengine.game.move.dto.PlayDto;
+import lombok.RequiredArgsConstructor;
 
-import java.util.List;
+@RequiredArgsConstructor
+public class Game {
+    private final GameCore core;
 
-public interface Game {
 
-    String currentPlayer();
 
-    Action registerPlayer(String playerId) throws GameException;
-
-    List<Action> performMove(PlayCardMove move) throws PlayerMoveException;
-
-    List<Action> performMove(DrawMove move) throws PlayerMoveException;
-
-    List<Action> performMove(PassMove move) throws PlayerMoveException;
-
-    Stage getStage();
-
-    GameState getCurrentState();
-
-    List<Action> start() throws GameException;
-
-    enum Stage {
-        LOBBY, RUNNING, FINISH;
+    public PlayerMove createMove(MoveDto dto) {
+        return switch (dto) {
+            case PlayDto play -> new PlayCardMove(core, play.getPlayerId(), play.getCard(), play.getNextColor());
+            case DrawDto draw -> new DrawMove(core, draw.playerId(), draw.count());
+            case PassDto pass -> new PassMove(core, pass.playerId());
+        };
     }
 }

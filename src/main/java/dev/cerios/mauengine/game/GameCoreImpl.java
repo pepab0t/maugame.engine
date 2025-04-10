@@ -16,9 +16,9 @@ import dev.cerios.mauengine.game.move.PlayCardMove;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static dev.cerios.mauengine.game.Game.Stage.*;
+import static dev.cerios.mauengine.game.GameCore.Stage.*;
 
-public class GameImpl implements Game {
+public class GameCoreImpl implements GameCore {
     private static final int MAX_PLAYERS = 5;
     private static final int MIN_PLAYERS = 2;
 
@@ -33,7 +33,7 @@ public class GameImpl implements Game {
     private final AtomicInteger currentPlayerIndex = new AtomicInteger();
     private GameEffect gameEffect = null;
 
-    public GameImpl(CardComparer cardComparer) {
+    public GameCoreImpl(CardComparer cardComparer) {
         this.cardManager = CardManager.create();
         this.stage = LOBBY;
         this.cardComparer = cardComparer;
@@ -58,10 +58,12 @@ public class GameImpl implements Game {
         return new RegisterAction(player);
     }
 
-    public List<Action> performMove(PlayCardMove move) throws PlayerMoveException {
-        String playerId = move.playerId();
+    public  List<Action> performPlayCard(final String playerId, Card card) throws  PlayerMoveException {
+        return performPlayCard(playerId, card, null);
+    }
+
+    public List<Action> performPlayCard(final String playerId, Card card, Color nextColor) throws PlayerMoveException {
         validatePlayer(playerId);
-        Card card = move.getCard();
 
         List<Card> playerHand = playerHands.get(playerId);
         final int cardIndex = playerHand.indexOf(card);
@@ -78,7 +80,6 @@ public class GameImpl implements Game {
             cardComparer.clear();
             switch (card.type()) {
                 case QUEEN -> {
-                    Color nextColor = move.getNextColor();
                     if (nextColor == null)
                         throw new PlayerMoveException("No next color specified, when played QUEEN.");
                     cardComparer.setNextColor(nextColor);
@@ -124,12 +125,11 @@ public class GameImpl implements Game {
     }
 
     @Override
-    public List<Action> performMove(DrawMove move) throws PlayerMoveException {
-        final String playerId = move.playerId();
+    public List<Action> performDraw(final String playerId, int cardCount) throws PlayerMoveException {
         validatePlayer(playerId);
 
-        if (move.count() != 1) {
-            throw new PlayerMoveException("illegal move: " + move);
+        if (cardCount != 1) {
+            throw new PlayerMoveException("illegal card draw count: " + cardCount);
         }
 
         if (gameEffect != null) {
@@ -144,8 +144,7 @@ public class GameImpl implements Game {
     }
 
     @Override
-    public List<Action> performMove(PassMove move) throws PlayerMoveException {
-        final String playerId = move.playerId();
+    public List<Action> performPass(final String playerId) throws PlayerMoveException {
         validatePlayer(playerId);
 
         if (gameEffect == null) {

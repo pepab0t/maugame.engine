@@ -1,33 +1,24 @@
 package dev.cerios.mauengine.game.move;
 
 import dev.cerios.mauengine.card.Card;
+import dev.cerios.mauengine.card.CardType;
 import dev.cerios.mauengine.card.Color;
+import dev.cerios.mauengine.exception.PlayerMoveException;
+import dev.cerios.mauengine.game.GameCore;
+import dev.cerios.mauengine.game.action.Action;
 
-public class PlayCardMove implements PlayerMove {
-    private final String playerId;
-    private final Card card;
-    private final Color nextColor;
+import java.util.List;
 
-    public PlayCardMove(String playerId, Card card) {
-        this(playerId, card, null);
-    }
+public record PlayCardMove(GameCore core, String playerId, Card card, Color nextColor) implements PlayerMove {
 
-    public PlayCardMove(String playerId, Card card, Color nextColor) {
-        this.playerId = playerId;
-        this.card = card;
-        this.nextColor = nextColor;
-    }
-
-    public Color getNextColor() {
-        return nextColor;
+    public PlayCardMove(GameCore core, String playerId, Card card) {
+        this(core, playerId, card, null);
     }
 
     @Override
-    public String playerId() {
-        return playerId;
-    }
-
-    public Card getCard() {
-        return card;
+    public List<Action> execute() throws PlayerMoveException {
+        return card.type() == CardType.QUEEN ?
+                core.performPlayCard(playerId, card, nextColor) :
+                core.performPlayCard(playerId, card);
     }
 }

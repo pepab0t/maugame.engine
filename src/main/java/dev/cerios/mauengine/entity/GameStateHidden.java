@@ -1,7 +1,7 @@
 package dev.cerios.mauengine.entity;
 
 import dev.cerios.mauengine.card.Card;
-import dev.cerios.mauengine.game.Game;
+import dev.cerios.mauengine.game.GameCore;
 import dev.cerios.mauengine.game.effect.GameEffect;
 import lombok.Data;
 
@@ -16,7 +16,7 @@ public class GameStateHidden {
     private final Map<String, Integer> playerHands;
     private final Card topPile;
     private final int deckSize;
-    private final Game.Stage stage;
+    private final GameCore.Stage stage;
     private final String currentPlayer;
     private final GameEffect gameEffect;
 }

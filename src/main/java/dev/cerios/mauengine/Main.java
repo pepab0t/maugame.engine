@@ -2,17 +2,17 @@ package dev.cerios.mauengine;
 
 import dev.cerios.mauengine.card.CardComparer;
 import dev.cerios.mauengine.exception.GameException;
-import dev.cerios.mauengine.game.Game;
-import dev.cerios.mauengine.game.GameImpl;
+import dev.cerios.mauengine.game.GameCore;
+import dev.cerios.mauengine.game.GameCoreImpl;
 
 public class Main {
     public static void main(String[] args) throws GameException {
-        Game game = new GameImpl(new CardComparer());
+        GameCore gameCore = new GameCoreImpl(new CardComparer());
 
-        game.registerPlayer("joe");
-        game.registerPlayer("klarie");
-        game.registerPlayer("rudolf");
+        gameCore.registerPlayer("joe");
+        gameCore.registerPlayer("klarie");
+        gameCore.registerPlayer("rudolf");
 
-        game.start().forEach(System.out::println);
+        gameCore.start().forEach(System.out::println);
     }
 }

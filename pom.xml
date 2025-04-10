@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>dev.cerios</groupId>
-    <artifactId>game-engine</artifactId>
+    <artifactId>gameCore-engine</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
