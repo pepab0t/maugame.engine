@@ -1,0 +1,8 @@
+package dev.cerios.mauengine.game.action;
+
+public record EndAction() implements Action {
+    @Override
+    public ActionType type() {
+        return ActionType.END_GAME;
+    }
+}
