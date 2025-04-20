@@ -3,7 +3,7 @@ package dev.cerios.maugame.mauengine.game.move;
 import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.CardType;
 import dev.cerios.maugame.mauengine.card.Color;
-import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
+import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.GameCore;
 import dev.cerios.maugame.mauengine.game.action.Action;
 
@@ -16,7 +16,7 @@ public record PlayCardMove(GameCore core, String playerId, Card card, Color next
     }
 
     @Override
-    public List<Action> execute() throws PlayerMoveException {
+    public List<Action> execute() throws MauEngineBaseException {
         return card.type() == CardType.QUEEN ?
                 core.performPlayCard(playerId, card, nextColor) :
                 core.performPlayCard(playerId, card);
