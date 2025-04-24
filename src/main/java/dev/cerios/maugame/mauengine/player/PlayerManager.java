@@ -3,9 +3,9 @@ package dev.cerios.maugame.mauengine.player;
 import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
-import dev.cerios.maugame.mauengine.game.action.Action;
 import dev.cerios.maugame.mauengine.game.action.PlayerShiftAction;
 import dev.cerios.maugame.mauengine.game.action.RegisterAction;
+import lombok.Getter;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,12 +14,13 @@ public class PlayerManager {
     private static final int MAX_PLAYERS = 5;
     private static final int MIN_PLAYERS = 2;
 
+    @Getter
     private final List<String> players = new ArrayList<>(5);
     private final LinkedHashMap<String, List<Card>> playerHands = new LinkedHashMap<>();
     private final AtomicInteger currentPlayerIndex = new AtomicInteger(-1);
     private final Random random = new Random();
 
-    public Action registerPlayer(String player) throws GameException {
+    public RegisterAction registerPlayer(String player) throws GameException {
         if (players.size() >= MAX_PLAYERS) {
             throw new GameException("The game has exceeded the maximum number of players.");
         }
