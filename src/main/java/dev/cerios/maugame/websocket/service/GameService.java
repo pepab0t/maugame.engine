@@ -23,11 +23,8 @@ public class GameService {
     private final GameStorage gameStorage;
     private final GameFactory gameFactory;
     private final Map<String, WebSocketSession> playerToSession = new HashMap<>();
-    private Game lobbyGame = null;
 
     public void registerPlayer(String player, WebSocketSession session) throws IOException {
-        if (lobbyGame == null)
-            lobbyGame = gameFactory.createGame();
         List<Action> actions = new LinkedList<>();
         try {
             actions.add(lobbyGame.registerPlayer(player));
@@ -35,10 +32,10 @@ public class GameService {
             throw new IllegalStateException(e);
         }
 
-        gameStorage.addPlayerToGame(player, lobbyGame);
+        var game = gameStorage.addPlayerToLatestGame(player);
         playerToSession.put(player, session);
 
-        if (lobbyGame.getFreeCapacity() == 0) {
+        if (game.getFreeCapacity() == 0) {
             try {
                 actions.addAll(lobbyGame.start());
             } catch (MauEngineBaseException e) {
