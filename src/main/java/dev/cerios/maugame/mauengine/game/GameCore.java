@@ -20,7 +20,6 @@ import static dev.cerios.maugame.mauengine.game.Stage.*;
 @RequiredArgsConstructor
 public class GameCore {
 
-    private final Random random = new Random();
     private final CardManager cardManager;
     private final CardComparer cardComparer;
     private final PlayerManager playerManager;
@@ -170,7 +169,6 @@ public class GameCore {
         for (Map.Entry<String, List<Card>> entry : playerManager.getPlayerHands().entrySet()) {
             actions.add(new DrawAction(entry.getKey(), entry.getValue()));
         }
-        actions.add(new StartAction());
         return actions;
     }
 

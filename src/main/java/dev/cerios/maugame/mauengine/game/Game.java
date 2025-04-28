@@ -6,6 +6,7 @@ import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.action.Action;
 import dev.cerios.maugame.mauengine.game.action.RegisterAction;
+import dev.cerios.maugame.mauengine.game.action.StartAction;
 import dev.cerios.maugame.mauengine.game.move.DrawMove;
 import dev.cerios.maugame.mauengine.game.move.PassMove;
 import dev.cerios.maugame.mauengine.game.move.PlayCardMove;
@@ -56,7 +57,9 @@ public class Game {
     }
 
     public List<Action> start() throws MauEngineBaseException {
-        return core.start();
+        var actions = core.start();
+        actions.add(new StartAction(uuid.toString()));
+        return actions;
     }
 
     public Stage getStage() {
