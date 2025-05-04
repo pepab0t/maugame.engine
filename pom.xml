@@ -11,7 +11,7 @@
     <groupId>dev.cerios.maugame</groupId>
     <artifactId>game-engine</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>websocket</name>
+    <name>game-engine</name>
     <description>Demo project for Spring Boot</description>
     <url/>
     <licenses>
