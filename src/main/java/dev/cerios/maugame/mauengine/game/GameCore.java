@@ -9,6 +9,7 @@ import dev.cerios.maugame.mauengine.game.action.*;
 import dev.cerios.maugame.mauengine.game.effect.DrawEffect;
 import dev.cerios.maugame.mauengine.game.effect.GameEffect;
 import dev.cerios.maugame.mauengine.game.effect.SkipEffect;
+import dev.cerios.maugame.mauengine.player.Player;
 import dev.cerios.maugame.mauengine.player.PlayerManager;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,7 @@ public class GameCore {
     public List<Action> performPlayCard(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
         validateActivePlayer(playerId);
 
-        List<Card> playerHand = playerManager.getPlayerHand(playerId);
+        List<Card> playerHand = playerManager.getPlayer(playerId).getHand();
         final int cardIndex = playerHand.indexOf(card);
         if (cardIndex == -1)
             throw new PlayerMoveException("Player does not have in hand: " + card);
@@ -78,12 +79,12 @@ public class GameCore {
         }
         playerHand.remove(cardIndex);
         if (playerHand.isEmpty()) {
-            var remainings = playerManager.removePlayer(playerId);
+            playerManager.deactivatePlayer(playerId);
             playerRank.add(playerId);
             actions.add(new WinAction(playerId));
 
-            if (remainings.size() == 1) {
-                String losingPlayer = remainings.iterator().next();
+            if (playerManager.getActiveCounter() == 1) {
+                String losingPlayer = playerManager.getPlayers().stream().filter(Player::isActive).findFirst().map(Player::getPlayerId).get();
                 playerRank.add(losingPlayer);
                 actions.add(new LoseAction(losingPlayer)); // redundant
                 actions.add(new SendRankAction(playerRank));
@@ -108,7 +109,7 @@ public class GameCore {
             throw new PlayerMoveException("illegal move");
         }
         var drawnCard = cardManager.draw();
-        playerManager.getPlayerHand(playerId).add(drawnCard);
+        playerManager.getPlayer(playerId).getHand().add(drawnCard);
         return List.of(
                 new DrawAction(playerId, List.of(drawnCard)),
                 playerManager.shiftPlayer()
@@ -127,7 +128,7 @@ public class GameCore {
         switch (gameEffect) {
             case DrawEffect(int count) -> {
                 var drawnCards = cardManager.draw(count);
-                playerManager.getPlayerHand(playerId).addAll(drawnCards);
+                playerManager.getPlayer(playerId).getHand().addAll(drawnCards);
                 actions.add(new DrawAction(playerId, drawnCards));
             }
             case SkipEffect ignore -> actions.add(new PassAction(playerId));
@@ -139,26 +140,26 @@ public class GameCore {
         return actions;
     }
 
-    public GameState getCurrentState() throws GameException {
-        return new GameState(
-                playerRank,
-                playerManager.getPlayerHands(),
-                cardManager.peekPile(),
-                cardManager.deckSize(),
-                stage,
-                playerManager.currentPlayer(),
-                gameEffect
-        );
-    }
+//    public GameState getCurrentState() throws GameException {
+//        return new GameState(
+//                playerRank,
+//                playerManager.getPlayersById(),
+//                cardManager.peekPile(),
+//                cardManager.deckSize(),
+//                stage,
+//                playerManager.currentPlayer(),
+//                gameEffect
+//        );
+//    }
 
     public List<Action> start() throws GameException, PlayerMoveException {
         if (stage != LOBBY)
             throw new GameException("The game has already started.");
         playerManager.validateCanStart();
 
-        for (String player : playerManager.getActivePlayers()) {
+        for (Player player : playerManager.getPlayers()) {
             var drawnCards = cardManager.draw(4);
-            playerManager.getPlayerHand(player).addAll(drawnCards);
+            player.getHand().addAll(drawnCards);
         }
 
         stage = RUNNING;
@@ -166,9 +167,8 @@ public class GameCore {
         actions.add(new StartPileAction(cardManager.startPile()));
         actions.add(playerManager.initializePlayer());
 
-        for (Map.Entry<String, List<Card>> entry : playerManager.getPlayerHands().entrySet()) {
-            actions.add(new DrawAction(entry.getKey(), entry.getValue()));
-        }
+        for (Player player : playerManager.getPlayersById().values())
+            actions.add(new DrawAction(player.getPlayerId(), player.getHand()));
         return actions;
     }
 

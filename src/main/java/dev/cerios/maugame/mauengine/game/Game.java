@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.UUID;
 
 import static dev.cerios.maugame.mauengine.game.Stage.LOBBY;
@@ -66,7 +67,7 @@ public class Game {
         return core.getStage();
     }
 
-    public List<String> getAllPlayers() {
+    public SequencedSet<String> getAllPlayers() {
         return playerManager.getPlayers();
     }
 }

@@ -1,16 +1,19 @@
 package dev.cerios.maugame;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.SequencedMap;
+import java.util.SequencedSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Example {
     public static void main(String[] args) {
-        SequencedMap<String, Integer> map = new LinkedHashMap<>();
 
-        map.put("A", 10);
-        map.put("B", 2);
-        map.put("C", 3);
+        set.add("A");
+        var iterator = set.iterator();
+        System.out.println(iterator.next());
+        System.out.println(iterator.next());
+        set.add("B");
 
-        System.out.println(map.lastEntry());
     }
 }
