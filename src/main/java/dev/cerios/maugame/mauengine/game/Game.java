@@ -10,6 +10,7 @@ import dev.cerios.maugame.mauengine.game.action.StartAction;
 import dev.cerios.maugame.mauengine.game.move.DrawMove;
 import dev.cerios.maugame.mauengine.game.move.PassMove;
 import dev.cerios.maugame.mauengine.game.move.PlayCardMove;
+import dev.cerios.maugame.mauengine.player.Player;
 import dev.cerios.maugame.mauengine.player.PlayerManager;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -67,7 +68,7 @@ public class Game {
         return core.getStage();
     }
 
-    public SequencedSet<String> getAllPlayers() {
+    public List<Player> getAllPlayers() {
         return playerManager.getPlayers();
     }
 }

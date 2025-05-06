@@ -1,6 +1,5 @@
 package dev.cerios.maugame.mauengine.player;
 
-import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
 import dev.cerios.maugame.mauengine.game.action.PlayerShiftAction;
@@ -30,10 +29,12 @@ public class PlayerManager {
         if (playersById.size() >= MAX_PLAYERS) {
             throw new GameException("The game has exceeded the maximum number of players.");
         }
-        Player player = new Player(playerId);
+        Player player = new Player(playerId, active -> {
+            byte change = (byte) (active ? 1 : -1);
+           activeCounter += change;
+        });
         players.add(player);
         playersById.put(playerId, player);
-        activeCounter++;
         return new RegisterAction(playerId);
     }
 
