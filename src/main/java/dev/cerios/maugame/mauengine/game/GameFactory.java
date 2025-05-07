@@ -2,7 +2,6 @@ package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.card.CardComparer;
 import dev.cerios.maugame.mauengine.card.CardManager;
-import dev.cerios.maugame.mauengine.player.PlayerManager;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

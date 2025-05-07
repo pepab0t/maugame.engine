@@ -7,18 +7,12 @@ import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.action.Action;
 import dev.cerios.maugame.mauengine.game.action.RegisterAction;
 import dev.cerios.maugame.mauengine.game.action.StartAction;
-import dev.cerios.maugame.mauengine.game.move.DrawMove;
-import dev.cerios.maugame.mauengine.game.move.PassMove;
-import dev.cerios.maugame.mauengine.game.move.PlayCardMove;
-import dev.cerios.maugame.mauengine.player.Player;
-import dev.cerios.maugame.mauengine.player.PlayerManager;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.SequencedSet;
 import java.util.UUID;
 
 import static dev.cerios.maugame.mauengine.game.Stage.LOBBY;
@@ -33,18 +27,21 @@ public class Game {
     private final GameCore core;
     private final PlayerManager playerManager;
 
-    public PlayCardMove createPlayMove(final String playerId, Card cardToPlay, Optional<Color> nextColor) {
-        return nextColor
-                .map(color -> new PlayCardMove(core, playerId, cardToPlay, color))
-                .orElseGet(() -> new PlayCardMove(core, playerId, cardToPlay));
+    public PlayerMove createPlayMove(final String playerId, Card cardToPlay, Optional<Color> nextColor) {
+        return () -> {
+            if (nextColor.isPresent()) {
+                return core.performPlayCard(playerId, cardToPlay, nextColor.get());
+            }
+            return core.performPlayCard(playerId, cardToPlay);
+        };
     }
 
-    public DrawMove createDrawMove(final String playerId, int count) {
-        return new DrawMove(core, playerId, count);
+    public PlayerMove createDrawMove(final String playerId, int count) {
+        return () -> core.performDraw(playerId, count);
     }
 
-    public PassMove createPassMove(final String playerId) {
-        return new PassMove(core, playerId);
+    public PlayerMove createPassMove(final String playerId) {
+        return () -> core.performPass(playerId);
     }
 
     public RegisterAction registerPlayer(final String playerId) throws GameException {

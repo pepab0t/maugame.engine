@@ -5,6 +5,7 @@ import java.util.*;
 public class CardManager {
     private final Queue<Card> deck;
     private final Queue<Card> pile;
+    private final Random random = new Random(112);
 
     public static CardManager create() {
         Set<Card> cards = new HashSet<>();
@@ -17,7 +18,7 @@ public class CardManager {
                 .shuffleRemaining();
     }
 
-    public CardManager(Collection<Card> cards) {
+    private CardManager(Collection<Card> cards) {
         this.deck = new LinkedList<>(cards);
         this.pile = new LinkedList<>();
     }
@@ -27,7 +28,7 @@ public class CardManager {
         while (!deck.isEmpty()) {
             cardList.add(deck.remove());
         }
-        Collections.shuffle(cardList);
+        Collections.shuffle(cardList, random);
         deck.addAll(cardList);
         return this;
     }

@@ -9,8 +9,6 @@ import dev.cerios.maugame.mauengine.game.action.*;
 import dev.cerios.maugame.mauengine.game.effect.DrawEffect;
 import dev.cerios.maugame.mauengine.game.effect.GameEffect;
 import dev.cerios.maugame.mauengine.game.effect.SkipEffect;
-import dev.cerios.maugame.mauengine.player.Player;
-import dev.cerios.maugame.mauengine.player.PlayerManager;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -19,7 +17,7 @@ import java.util.*;
 import static dev.cerios.maugame.mauengine.game.Stage.*;
 
 @RequiredArgsConstructor
-public class GameCore {
+class GameCore {
 
     private final CardManager cardManager;
     private final CardComparer cardComparer;
@@ -152,7 +150,7 @@ public class GameCore {
 //        );
 //    }
 
-    public List<Action> start() throws GameException, PlayerMoveException {
+    public List<Action> start() throws GameException {
         if (stage != LOBBY)
             throw new GameException("The game has already started.");
         playerManager.validateCanStart();
@@ -172,11 +170,11 @@ public class GameCore {
         return actions;
     }
 
-    private void validateActivePlayer(String playerId) throws PlayerMoveException, GameException {
+    private void validateActivePlayer(String playerId) throws PlayerMoveException {
         if (stage != RUNNING) {
             throw new PlayerMoveException("The game not running.");
         }
-        if (!playerId.equals(playerManager.currentPlayer())) {
+        if (!playerId.equals(playerManager.currentPlayer().getPlayerId())) {
             throw new PlayerNotActiveException(playerId);
         }
     }

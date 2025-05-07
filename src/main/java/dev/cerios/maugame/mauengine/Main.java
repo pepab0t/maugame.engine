@@ -16,12 +16,14 @@ public class Main {
 
         game.registerPlayer("joe");
         game.registerPlayer("klarie");
-        game.registerPlayer("rudolf");
 
-        game.start();
+        System.out.println(game.start());
 
-        Card cardToPlay = new Card(CardType.JACK, Color.SPADES);
+        Card cardToPlay = new Card(CardType.NINE, Color.DIAMONDS);
         var move = game.createPlayMove("joe", cardToPlay, Optional.empty());
-        move.execute();
+
+        System.out.println(move.execute());
+        System.out.println(game.createPlayMove("klarie", new Card(CardType.KING, Color.DIAMONDS), Optional.empty()).execute());
+        System.out.println(game.createPlayMove("joe", new Card(CardType.KING, Color.HEARTS), Optional.empty()).execute());
     }
 }
