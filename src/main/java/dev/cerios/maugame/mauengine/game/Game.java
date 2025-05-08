@@ -65,7 +65,9 @@ public class Game {
         return core.getStage();
     }
 
-    public List<Player> getAllPlayers() {
-        return playerManager.getPlayers();
+    public List<String> getAllPlayers() {
+        return playerManager.getPlayers().stream()
+                .map(Player::getPlayerId)
+                .toList();
     }
 }
