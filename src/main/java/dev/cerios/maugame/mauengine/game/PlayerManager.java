@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class PlayerManager {
-    private static final int MAX_PLAYERS = 5;
+    private static final int MAX_PLAYERS = 2;
     private static final int MIN_PLAYERS = 2;
 
     private final List<Player> players = new ArrayList<>(5);

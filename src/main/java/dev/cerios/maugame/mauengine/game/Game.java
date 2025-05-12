@@ -61,6 +61,14 @@ public class Game {
         return actions;
     }
 
+    public void activatePlayer(String playerId) {
+        playerManager.activatePlayer(playerId);
+    }
+
+    public void deactivatePlayer(String playerId) {
+        playerManager.deactivatePlayer(playerId);
+    }
+
     public Stage getStage() {
         return core.getStage();
     }
