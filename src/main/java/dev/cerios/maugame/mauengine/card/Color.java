@@ -1,5 +1,8 @@
 package dev.cerios.maugame.mauengine.card;
 
+import lombok.Getter;
+
+@Getter
 public enum Color {
     DIAMONDS("♦"),
     CLUBS("♣"),
@@ -10,9 +13,5 @@ public enum Color {
 
     Color(String symbol) {
         this.symbol = symbol;
-    }
-
-    public String getSymbol() {
-        return symbol;
     }
 }

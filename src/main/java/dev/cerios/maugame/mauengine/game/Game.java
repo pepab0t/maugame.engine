@@ -4,9 +4,7 @@ import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
-import dev.cerios.maugame.mauengine.game.action.Action;
-import dev.cerios.maugame.mauengine.game.action.RegisterAction;
-import dev.cerios.maugame.mauengine.game.action.StartAction;
+import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -61,12 +59,12 @@ public class Game {
         return actions;
     }
 
-    public void activatePlayer(String playerId) {
-        playerManager.activatePlayer(playerId);
+    public ActivateAction activatePlayer(String playerId) {
+        return playerManager.activatePlayer(playerId);
     }
 
-    public void deactivatePlayer(String playerId) {
-        playerManager.deactivatePlayer(playerId);
+    public DeactivateAction deactivatePlayer(String playerId) {
+        return playerManager.deactivatePlayer(playerId);
     }
 
     public Stage getStage() {

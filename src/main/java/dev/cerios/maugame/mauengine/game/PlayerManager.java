@@ -2,6 +2,8 @@ package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
+import dev.cerios.maugame.mauengine.game.action.ActivateAction;
+import dev.cerios.maugame.mauengine.game.action.DeactivateAction;
 import dev.cerios.maugame.mauengine.game.action.PlayerShiftAction;
 import dev.cerios.maugame.mauengine.game.action.RegisterAction;
 import lombok.Getter;
@@ -47,20 +49,22 @@ class PlayerManager {
         return player;
     }
 
-    public void deactivatePlayer(final String playerId) {
+    public DeactivateAction deactivatePlayer(final String playerId) {
         var player = playersById.get(playerId);
         if (player == null)
             throw new RuntimeException("player not in game: " + playerId);
         player.disable();
         activeCounter--;
+        return new DeactivateAction(playerId);
     }
 
-    public void activatePlayer(final String playerId) {
+    public ActivateAction activatePlayer(final String playerId) {
         var player = playersById.get(playerId);
         if (player == null)
             throw new RuntimeException("player not in game: " + playerId);
         player.enable();
         activeCounter++;
+        return new ActivateAction(player.getPlayerId());
     }
 
     public void validateCanStart() throws GameException {

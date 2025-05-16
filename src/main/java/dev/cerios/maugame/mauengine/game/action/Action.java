@@ -5,6 +5,8 @@ public interface Action {
 
     enum ActionType {
         REGISTER_PLAYER,
+        ACTIVATE_PLAYER,
+        DEACTIVATE_PLAYER,
         PLAY_CARD,
         DRAW,
         PASS,
