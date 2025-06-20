@@ -15,8 +15,6 @@ class PlayerManager {
     public static final int MAX_PLAYERS = 2;
     public static final int MIN_PLAYERS = 2;
 
-    @Getter
-    private final Map<String, Player> playersById = new HashMap<>();
     private final AtomicInteger currentPlayerIndex = new AtomicInteger(-1);
     @Getter
     private byte activeCounter = 0;
@@ -62,19 +60,15 @@ class PlayerManager {
                 .orElseThrow(() -> new PlayerMoveException(playerId));
     }
 
-    public DeactivateAction deactivatePlayer(final String playerId) {
-        var player = playersById.get(playerId);
-        if (player == null)
-            throw new RuntimeException("player not in game: " + playerId);
+    public DeactivateAction deactivatePlayer(final String playerId) throws PlayerMoveException {
+        var player = getPlayer(playerId);
         player.disable();
         activeCounter--;
         return new DeactivateAction(playerId);
     }
 
-    public ActivateAction activatePlayer(final String playerId) {
-        var player = playersById.get(playerId);
-        if (player == null)
-            throw new RuntimeException("player not in game: " + playerId);
+    public ActivateAction activatePlayer(final String playerId) throws PlayerMoveException {
+        var player = getPlayer(playerId);
         player.enable();
         activeCounter++;
         return new ActivateAction(player.getPlayerId());
@@ -86,7 +80,7 @@ class PlayerManager {
     }
 
     public void initializePlayer() throws GameException {
-        var initValue = random.nextInt(playersById.size() + 1);
+        var initValue = random.nextInt(_players.size() + 1);
         currentPlayerIndex.set(initValue);
         shiftPlayer();
     }

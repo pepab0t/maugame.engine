@@ -1,6 +1,8 @@
 package dev.cerios.maugame.mauengine.game.action;
 
-public record WinAction(String playerId) implements Action {
+import dev.cerios.maugame.mauengine.game.Player;
+
+public record WinAction(Player player) implements Action {
     @Override
     public ActionType type() {
         return ActionType.WIN;

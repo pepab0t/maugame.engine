@@ -38,7 +38,8 @@ class GameCore {
     public void performPlayCard(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
         validatePlayerPlay(playerId);
 
-        List<Card> playerHand = playerManager.getPlayer(playerId).getHand();
+        var player = playerManager.getPlayer(playerId);
+        List<Card> playerHand = player.getHand();
         final int cardIndex = playerHand.indexOf(card);
         if (cardIndex == -1)
             throw new PlayerMoveException("Player does not have in hand: " + card);
@@ -81,12 +82,12 @@ class GameCore {
         playerHand.remove(cardIndex);
         if (playerHand.isEmpty()) {
             playerManager.deactivatePlayer(playerId);
-            playerRank.add(playerId);
-            actions.add(new WinAction(playerId));
+            playerRank.add(player.getUsername());
+            actions.add(new WinAction(player));
 
             if (playerManager.getActiveCounter() == 1) {
-                String losingPlayer = playerManager.getPlayers().stream().filter(Player::isActive).findFirst().map(Player::getPlayerId).get();
-                playerRank.add(losingPlayer);
+                var losingPlayer = playerManager.getPlayers().stream().filter(Player::isActive).findFirst().get();
+                playerRank.add(losingPlayer.getUsername());
                 actions.add(new LoseAction(losingPlayer)); // redundant
                 actions.add(new SendRankAction(playerRank));
                 actions.add(new EndAction());
@@ -126,9 +127,9 @@ class GameCore {
             throw new PlayerMoveException("illegal move");
         }
 
+        var player = playerManager.getPlayer(playerId);
         switch (gameEffect) {
             case DrawEffect(int count) -> {
-                var player = playerManager.getPlayer(playerId);
                 var drawnCards = cardManager.draw(count);
                 player.getHand().addAll(drawnCards);
 
@@ -138,7 +139,7 @@ class GameCore {
                 );
                 player.trigger(new DrawAction(drawnCards));
             }
-            case SkipEffect ignore -> playerManager.distributeActionToAll(new PassAction(playerId));
+            case SkipEffect ignore -> playerManager.distributeActionToAll(new PassAction(player));
         }
         gameEffect = null;
         playerManager.shiftPlayer();

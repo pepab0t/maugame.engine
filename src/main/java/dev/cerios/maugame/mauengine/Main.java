@@ -14,7 +14,7 @@ import static dev.cerios.maugame.mauengine.card.Color.*;
 
 public class Main {
     public static void main(String[] args) throws MauEngineBaseException {
-        Random random = new Random(1);
+        Random random = new Random(111);
         var gameFactory = new GameFactory(random);
         var game = gameFactory.createGame();
 
@@ -22,17 +22,25 @@ public class Main {
             System.out.println(player.getUsername() + ": got event " + event);
         };
 
-        var player1 = game.registerPlayer("P1", playerListener);
-        var player2 = game.registerPlayer("P2", playerListener);
+        var player1 = game.registerPlayer("P1", playerListener).getPlayerId();
+        var player2 = game.registerPlayer("P2", playerListener).getPlayerId();
 
         game.start();
 
         System.out.println("---");
-        game.playCardMove(player2.getPlayerId(), new Card(TEN, SPADES));
+        game.playCardMove(player2, new Card(SEVEN, DIAMONDS));
         System.out.println("---");
-        game.playCardMove(player1.getPlayerId(), new Card(TEN, CLUBS));
+        game.playPassMove(player1);
         System.out.println("---");
-        game.playDrawMove(player2.getPlayerId(), 1);
+        game.playCardMove(player2, new Card(SEVEN, SPADES));
+        System.out.println("---");
+        game.playPassMove(player1);
+        System.out.println("---");
+        game.playCardMove(player2, new Card(NINE, SPADES));
+        System.out.println("---");
+        game.playCardMove(player1, new Card(JACK, SPADES));
+        System.out.println("---");
+        game.playCardMove(player2, new Card(JACK, DIAMONDS));
         System.out.println("---");
         System.out.println(game.getGameState());
     }

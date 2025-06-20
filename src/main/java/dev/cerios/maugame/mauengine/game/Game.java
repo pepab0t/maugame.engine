@@ -4,6 +4,7 @@ import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
+import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
 import dev.cerios.maugame.mauengine.game.action.ActivateAction;
 import dev.cerios.maugame.mauengine.game.action.DeactivateAction;
 import dev.cerios.maugame.mauengine.game.action.PlayersAction;
@@ -67,11 +68,11 @@ public class Game {
         core.start();
     }
 
-    public ActivateAction activatePlayer(String playerId) {
+    public ActivateAction activatePlayer(String playerId) throws PlayerMoveException {
         return playerManager.activatePlayer(playerId);
     }
 
-    public DeactivateAction deactivatePlayer(String playerId) {
+    public DeactivateAction deactivatePlayer(String playerId) throws PlayerMoveException {
         return playerManager.deactivatePlayer(playerId);
     }
 
