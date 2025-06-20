@@ -9,6 +9,7 @@ public interface Action {
         DEACTIVATE_PLAYER,
         PLAY_CARD,
         DRAW,
+        HIDDEN_DRAW,
         PASS,
         PLAYER_CHANGE,
         START_GAME,
@@ -16,6 +17,7 @@ public interface Action {
         WIN,
         LOSE,
         PLAYER_RANK,
+        PLAYERS,
         START_PILE;
     }
 }

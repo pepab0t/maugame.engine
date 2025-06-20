@@ -2,20 +2,19 @@ package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
-import dev.cerios.maugame.mauengine.game.action.ActivateAction;
-import dev.cerios.maugame.mauengine.game.action.DeactivateAction;
-import dev.cerios.maugame.mauengine.game.action.PlayerShiftAction;
-import dev.cerios.maugame.mauengine.game.action.RegisterAction;
+import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
+import static dev.cerios.maugame.mauengine.game.PlayerIdGenerator.generatePlayerId;
 
 class PlayerManager {
     private static final int MAX_PLAYERS = 2;
     private static final int MIN_PLAYERS = 2;
 
-    private final List<Player> players = new ArrayList<>(5);
     @Getter
     private final Map<String, Player> playersById = new HashMap<>();
     private final AtomicInteger currentPlayerIndex = new AtomicInteger(-1);
@@ -24,29 +23,40 @@ class PlayerManager {
     private final Random random = new Random(111);
 
     public List<Player> getPlayers() {
-        return Collections.unmodifiableList(players);
+        return Collections.unmodifiableList(_players);
     }
 
-    public RegisterAction registerPlayer(String playerId) throws GameException {
-        if (playersById.size() >= MAX_PLAYERS)
-            throw new GameException("The game has exceeded the maximum number of players.");
+    private final List<Player> _players = new ArrayList<>(MAX_PLAYERS);
 
-        Player player = new Player(playerId);
-        players.add(player);
-        playersById.put(playerId, player);
+    public Player registerPlayer(GameEventListener eventListener) throws GameException {
+        if (_players.size() >= MAX_PLAYERS)
+            throw new GameException(
+                    String.format(
+                            "The game has exceeded the maximum number of players (%s).",
+                            MAX_PLAYERS
+                    )
+            );
+
+        var player = new Player(generatePlayerId(), eventListener);
+        var action = new RegisterAction(player.getPlayerId(), false);
+        _players.stream()
+                .filter(Player::isActive)
+                .forEach(p -> p.trigger(action));
+        _players.add(player);
+        player.trigger(new RegisterAction(player.getPlayerId(), true));
         activeCounter++;
-        return new RegisterAction(playerId);
+        return player;
     }
 
     public Player currentPlayer() {
-        return players.get(currentPlayerIndex.get() % players.size());
+        return _players.get(currentPlayerIndex.get() % _players.size());
     }
 
     public Player getPlayer(String playerId) throws PlayerMoveException {
-        var player = this.playersById.get(playerId);
-        if (player == null)
-            throw new PlayerMoveException("player not in game: " + playerId);
-        return player;
+        return _players.stream()
+                .filter(p -> p.getPlayerId().equals(playerId))
+                .findFirst()
+                .orElseThrow(() -> new PlayerMoveException(playerId));
     }
 
     public DeactivateAction deactivatePlayer(final String playerId) {
@@ -68,27 +78,45 @@ class PlayerManager {
     }
 
     public void validateCanStart() throws GameException {
-        if (players.size() < MIN_PLAYERS)
+        if (_players.size() < MIN_PLAYERS)
             throw new GameException("The game needs at least " + MIN_PLAYERS + " players to start.");
     }
 
-    public PlayerShiftAction initializePlayer() throws GameException {
+    public void initializePlayer() throws GameException {
         var initValue = random.nextInt(playersById.size() + 1);
         currentPlayerIndex.set(initValue);
-        return shiftPlayer();
+        shiftPlayer();
     }
 
-    public PlayerShiftAction shiftPlayer() {
+    public void shiftPlayer() {
         if (activeCounter < 2)
             throw new RuntimeException("There is no next player");
         Player nextPlayer;
         do {
-            nextPlayer = players.get(currentPlayerIndex.incrementAndGet() % players.size());
+            nextPlayer = _players.get(currentPlayerIndex.incrementAndGet() % _players.size());
         } while (!nextPlayer.isActive());
-        return new PlayerShiftAction(nextPlayer.getPlayerId());
+        var action = new PlayerShiftAction(nextPlayer.getPlayerId());
+        distributeActionToAll(action);
+    }
+
+    public void distributeActionToAll(Action action) {
+        distributeAction(action, Player::isActive);
+    }
+
+    public void distributeActionExcludingPlayer(Action action, String playerId) {
+        distributeAction(action, p -> p.isActive() && p.getPlayerId().equals(playerId));
+    }
+
+    private void distributeAction(
+            Action action,
+            Predicate<Player> playerPredicate
+    ) {
+        _players.stream()
+                .filter(playerPredicate)
+                .forEach(player -> player.trigger(action));
     }
 
     public int getFreeCapacity() {
-        return MAX_PLAYERS - players.size();
+        return MAX_PLAYERS - _players.size();
     }
 }

@@ -4,7 +4,10 @@ import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
-import dev.cerios.maugame.mauengine.game.action.*;
+import dev.cerios.maugame.mauengine.game.action.ActivateAction;
+import dev.cerios.maugame.mauengine.game.action.DeactivateAction;
+import dev.cerios.maugame.mauengine.game.action.PlayersAction;
+import dev.cerios.maugame.mauengine.game.action.StartAction;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -25,38 +28,38 @@ public class Game {
     private final GameCore core;
     private final PlayerManager playerManager;
 
-    public PlayerMove createPlayMove(final String playerId, Card cardToPlay, Optional<Color> nextColor) {
-        return () -> {
-            if (nextColor.isPresent()) {
-                return core.performPlayCard(playerId, cardToPlay, nextColor.get());
-            }
-            return core.performPlayCard(playerId, cardToPlay);
-        };
+    public void playCardMove(final String playerId, Card cardToPlay, Optional<Color> nextColor) throws MauEngineBaseException {
+        if (nextColor.isPresent()) {
+            core.performPlayCard(playerId, cardToPlay, nextColor.get());
+        }
+        core.performPlayCard(playerId, cardToPlay);
     }
 
-    public PlayerMove createDrawMove(final String playerId, int count) {
-        return () -> core.performDraw(playerId, count);
+    public void playDrawMove(final String playerId, int count) throws MauEngineBaseException {
+        core.performDraw(playerId, count);
     }
 
-    public PlayerMove createPassMove(final String playerId) {
-        return () -> core.performPass(playerId);
+    public void playPassMove(final String playerId) throws MauEngineBaseException {
+        core.performPass(playerId);
     }
 
-    public RegisterAction registerPlayer(final String playerId) throws GameException {
+    public Player registerPlayer(final GameEventListener eventListener) throws GameException {
         if (core.getStage() != LOBBY) {
             throw new GameException("The game has already started.");
         }
-        return playerManager.registerPlayer(playerId);
+        var player = playerManager.registerPlayer(eventListener);
+        var action = new PlayersAction(playerManager.getPlayers());
+        player.trigger(action);
+        return player;
     }
 
     public int getFreeCapacity() {
         return playerManager.getFreeCapacity();
     }
 
-    public List<Action> start() throws MauEngineBaseException {
-        var actions = core.start();
-        actions.add(new StartAction(uuid.toString()));
-        return actions;
+    public void start() throws MauEngineBaseException {
+        playerManager.distributeActionToAll(new StartAction(uuid.toString()));
+        core.start();
     }
 
     public ActivateAction activatePlayer(String playerId) {
@@ -72,8 +75,6 @@ public class Game {
     }
 
     public List<String> getAllPlayers() {
-        return playerManager.getPlayers().stream()
-                .map(Player::getPlayerId)
-                .toList();
+        return playerManager.getPlayers().stream().map(Player::getPlayerId).toList();
     }
 }

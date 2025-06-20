@@ -1,22 +1,25 @@
 package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.card.Card;
+import dev.cerios.maugame.mauengine.game.action.Action;
 import lombok.Getter;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
-@Getter
-class Player {
+public class Player {
+    @Getter
     private final String playerId;
-
+    @Getter
     private boolean active = true;
+    @Getter
     private final List<Card> hand = new ArrayList<>();
+    private final GameEventListener eventListener;
 
-    public Player(String playerId) {
+    public Player(String playerId, GameEventListener eventListener) {
         this.playerId = playerId;
+        this.eventListener = eventListener;
     }
 
     public void enable() {
@@ -25,5 +28,9 @@ class Player {
 
     public void disable() {
         active = false;
+    }
+
+    public void trigger(Action action) {
+        eventListener.accept(playerId, action);
     }
 }
