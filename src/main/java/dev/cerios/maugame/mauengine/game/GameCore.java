@@ -113,7 +113,7 @@ class GameCore {
         var player = playerManager.getPlayer(playerId);
         player.getHand().add(drawnCard);
 
-        playerManager.distributeActionExcludingPlayer(new HiddenDrawAction(playerId, (byte) 1), playerId);
+        playerManager.distributeActionExcludingPlayer(new HiddenDrawAction(player, (byte) 1), playerId);
         player.trigger(new DrawAction(List.of(drawnCard)));
         playerManager.shiftPlayer();
     }
@@ -132,7 +132,7 @@ class GameCore {
                 player.getHand().addAll(drawnCards);
 
                 playerManager.distributeActionExcludingPlayer(
-                        new HiddenDrawAction(playerId, (byte) drawnCards.size()),
+                        new HiddenDrawAction(player, (byte) drawnCards.size()),
                         playerId
                 );
                 player.trigger(new DrawAction(drawnCards));
@@ -172,10 +172,9 @@ class GameCore {
 
         for (Player player : playerManager.getPlayers()) {
             player.trigger(new DrawAction(player.getHand()));
-            var playerId = player.getPlayerId();
             playerManager.distributeActionExcludingPlayer(
-                    new HiddenDrawAction(playerId, (byte) player.getHand().size()),
-                    playerId
+                    new HiddenDrawAction(player, (byte) player.getHand().size()),
+                    player.getPlayerId()
             );
         }
     }

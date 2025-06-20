@@ -4,5 +4,6 @@ import dev.cerios.maugame.mauengine.game.action.Action;
 
 import java.util.function.BiConsumer;
 
-public interface GameEventListener extends BiConsumer<String, Action> {
+@FunctionalInterface
+public interface GameEventListener extends BiConsumer<Player, Action> {
 }

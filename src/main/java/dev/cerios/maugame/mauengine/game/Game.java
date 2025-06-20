@@ -43,11 +43,11 @@ public class Game {
         core.performPass(playerId);
     }
 
-    public Player registerPlayer(final GameEventListener eventListener) throws GameException {
+    public Player registerPlayer(String username, final GameEventListener eventListener) throws GameException {
         if (core.getStage() != LOBBY) {
             throw new GameException("The game has already started.");
         }
-        var player = playerManager.registerPlayer(eventListener);
+        var player = playerManager.registerPlayer(username, eventListener);
         var action = new PlayersAction(playerManager.getPlayers());
         player.trigger(action);
         return player;

@@ -28,7 +28,7 @@ class PlayerManager {
 
     private final List<Player> _players = new ArrayList<>(MAX_PLAYERS);
 
-    public Player registerPlayer(GameEventListener eventListener) throws GameException {
+    public Player registerPlayer(String username, GameEventListener eventListener) throws GameException {
         if (_players.size() >= MAX_PLAYERS)
             throw new GameException(
                     String.format(
@@ -37,13 +37,13 @@ class PlayerManager {
                     )
             );
 
-        var player = new Player(generatePlayerId(), eventListener);
-        var action = new RegisterAction(player.getPlayerId(), false);
+        var player = new Player(generatePlayerId(), username, eventListener);
+        var action = new RegisterAction(player, false);
         _players.stream()
                 .filter(Player::isActive)
                 .forEach(p -> p.trigger(action));
         _players.add(player);
-        player.trigger(new RegisterAction(player.getPlayerId(), true));
+        player.trigger(new RegisterAction(player, true));
         activeCounter++;
         return player;
     }
