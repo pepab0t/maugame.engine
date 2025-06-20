@@ -4,7 +4,6 @@ import dev.cerios.maugame.mauengine.card.*;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
-import dev.cerios.maugame.mauengine.exception.PlayerNotActiveException;
 import dev.cerios.maugame.mauengine.game.action.*;
 import dev.cerios.maugame.mauengine.game.effect.DrawEffect;
 import dev.cerios.maugame.mauengine.game.effect.GameEffect;
@@ -27,7 +26,7 @@ class GameCore {
     private final PlayerManager playerManager;
 
     private final List<String> playerRank = new ArrayList<>(PlayerManager.MAX_PLAYERS);
-    private GameEffect gameEffect = null;
+    private volatile GameEffect gameEffect = null;
     @Getter
     private volatile Stage stage = LOBBY;
 
@@ -36,9 +35,9 @@ class GameCore {
     }
 
     public void performPlayCard(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
+        var player = playerManager.getPlayer(playerId);
         validatePlayerPlay(playerId);
 
-        var player = playerManager.getPlayer(playerId);
         List<Card> playerHand = player.getHand();
         final int cardIndex = playerHand.indexOf(card);
         if (cardIndex == -1)
@@ -102,17 +101,17 @@ class GameCore {
     }
 
     public void performDraw(final String playerId, int cardCount) throws MauEngineBaseException {
+        var player = playerManager.getPlayer(playerId);
         validatePlayerPlay(playerId);
 
         if (cardCount != 1) {
             throw new PlayerMoveException("illegal card draw count: " + cardCount);
         }
 
-        if (gameEffect != null) {
-            throw new PlayerMoveException("illegal move");
-        }
+        if (gameEffect != null)
+            throw new PlayerMoveException("cannot draw when when game effect is active");
+
         var drawnCard = cardManager.draw();
-        var player = playerManager.getPlayer(playerId);
         player.getHand().add(drawnCard);
 
         playerManager.distributeActionExcludingPlayer(new HiddenDrawAction(player, (byte) 1), playerId);
@@ -123,9 +122,8 @@ class GameCore {
     public void performPass(final String playerId) throws MauEngineBaseException {
         validatePlayerPlay(playerId);
 
-        if (gameEffect == null) {
-            throw new PlayerMoveException("illegal move");
-        }
+        if (gameEffect == null)
+            throw new PlayerMoveException("cannot pass without active game effect");
 
         var player = playerManager.getPlayer(playerId);
         switch (gameEffect) {
@@ -164,6 +162,7 @@ class GameCore {
     public void start() throws GameException {
         if (stage != LOBBY)
             throw new GameException("The game has already started.");
+
         playerManager.validateCanStart();
 
         for (Player player : playerManager.getPlayers()) {
@@ -185,12 +184,12 @@ class GameCore {
         }
     }
 
-    private void validatePlayerPlay(String playerId) throws PlayerMoveException {
+    private void validatePlayerPlay(String playerId) throws MauEngineBaseException {
         if (stage != RUNNING) {
-            throw new PlayerMoveException("The game not running.");
+            throw new GameException("The game not running.");
         }
         if (!playerId.equals(playerManager.currentPlayer().getPlayerId())) {
-            throw new PlayerNotActiveException(playerId);
+            throw new PlayerMoveException(playerId);
         }
     }
 }
