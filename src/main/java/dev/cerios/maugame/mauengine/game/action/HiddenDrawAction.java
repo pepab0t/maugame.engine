@@ -2,9 +2,13 @@ package dev.cerios.maugame.mauengine.game.action;
 
 import dev.cerios.maugame.mauengine.game.Player;
 
-public record PlayerShiftAction(Player player) implements Action {
+public record HiddenDrawAction(
+        Player player,
+        byte count
+) implements Action {
+
     @Override
     public ActionType type() {
-        return ActionType.PLAYER_CHANGE;
+        return ActionType.HIDDEN_DRAW;
     }
 }

@@ -4,26 +4,44 @@ import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.CardType;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
-import dev.cerios.maugame.mauengine.game.Game;
+import dev.cerios.maugame.mauengine.game.GameEventListener;
 import dev.cerios.maugame.mauengine.game.GameFactory;
 
-import java.util.Optional;
+import java.util.Random;
+
+import static dev.cerios.maugame.mauengine.card.CardType.*;
+import static dev.cerios.maugame.mauengine.card.Color.*;
 
 public class Main {
     public static void main(String[] args) throws MauEngineBaseException {
-        GameFactory gameFactory = new GameFactory();
-        Game game = gameFactory.createGame();
+        Random random = new Random(111);
+        var gameFactory = new GameFactory(random);
+        var game = gameFactory.createGame();
 
-        game.registerPlayer("joe");
-        game.registerPlayer("klarie");
+        GameEventListener playerListener = (player, event) -> {
+            System.out.println(player.getUsername() + ": got event " + event);
+        };
 
-        System.out.println(game.start());
+        var player1 = game.registerPlayer("P1", playerListener).getPlayerId();
+        var player2 = game.registerPlayer("P2", playerListener).getPlayerId();
 
-        Card cardToPlay = new Card(CardType.NINE, Color.DIAMONDS);
-        var move = game.createPlayMove("joe", cardToPlay, Optional.empty());
+        game.start();
 
-        System.out.println(move.execute());
-        System.out.println(game.createPlayMove("klarie", new Card(CardType.KING, Color.DIAMONDS), Optional.empty()).execute());
-        System.out.println(game.createPlayMove("joe", new Card(CardType.KING, Color.HEARTS), Optional.empty()).execute());
+        System.out.println("---");
+        game.playCardMove(player2, new Card(SEVEN, DIAMONDS));
+        System.out.println("---");
+        game.playPassMove(player1);
+        System.out.println("---");
+        game.playCardMove(player2, new Card(SEVEN, SPADES));
+        System.out.println("---");
+        game.playPassMove(player1);
+        System.out.println("---");
+        game.playCardMove(player2, new Card(NINE, SPADES));
+        System.out.println("---");
+        game.playCardMove(player1, new Card(JACK, SPADES));
+        System.out.println("---");
+        game.playCardMove(player2, new Card(JACK, DIAMONDS));
+        System.out.println("---");
+        System.out.println(game.getGameState());
     }
 }
