@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -25,7 +26,7 @@ class GameCore {
     private final CardComparer cardComparer;
     private final PlayerManager playerManager;
 
-    private final List<String> playerRank = new ArrayList<>(5);
+    private final List<String> playerRank = new ArrayList<>(PlayerManager.MAX_PLAYERS);
     private GameEffect gameEffect = null;
     @Getter
     private volatile Stage stage = LOBBY;
@@ -35,7 +36,7 @@ class GameCore {
     }
 
     public void performPlayCard(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
-        validateActivePlayer(playerId);
+        validatePlayerPlay(playerId);
 
         List<Card> playerHand = playerManager.getPlayer(playerId).getHand();
         final int cardIndex = playerHand.indexOf(card);
@@ -100,7 +101,7 @@ class GameCore {
     }
 
     public void performDraw(final String playerId, int cardCount) throws MauEngineBaseException {
-        validateActivePlayer(playerId);
+        validatePlayerPlay(playerId);
 
         if (cardCount != 1) {
             throw new PlayerMoveException("illegal card draw count: " + cardCount);
@@ -119,7 +120,7 @@ class GameCore {
     }
 
     public void performPass(final String playerId) throws MauEngineBaseException {
-        validateActivePlayer(playerId);
+        validatePlayerPlay(playerId);
 
         if (gameEffect == null) {
             throw new PlayerMoveException("illegal move");
@@ -143,17 +144,21 @@ class GameCore {
         playerManager.shiftPlayer();
     }
 
-    //    public GameState getCurrentState() throws GameException {
-    //        return new GameState(
-    //                playerRank,
-    //                playerManager.getPlayersById(),
-    //                cardManager.peekPile(),
-    //                cardManager.deckSize(),
-    //                stage,
-    //                playerManager.currentPlayer(),
-    //                gameEffect
-    //        );
-    //    }
+    public GameState getCurrentState() {
+        return new GameState(
+                playerRank,
+                playerManager.getPlayers().stream().collect(
+                        HashMap::new,
+                        (map, player) -> map.put(player.getUsername(), player.getHand()),
+                        HashMap::putAll
+                ),
+                cardManager.peekPile(),
+                cardManager.deckSize(),
+                stage,
+                playerManager.currentPlayer().getUsername(),
+                gameEffect
+        );
+    }
 
     public void start() throws GameException {
         if (stage != LOBBY)
@@ -179,7 +184,7 @@ class GameCore {
         }
     }
 
-    private void validateActivePlayer(String playerId) throws PlayerMoveException {
+    private void validatePlayerPlay(String playerId) throws PlayerMoveException {
         if (stage != RUNNING) {
             throw new PlayerMoveException("The game not running.");
         }

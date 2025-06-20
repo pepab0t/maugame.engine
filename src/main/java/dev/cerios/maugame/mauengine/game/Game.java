@@ -54,6 +54,10 @@ public class Game {
         return player;
     }
 
+    public GameState getGameState() {
+        return core.getCurrentState();
+    }
+
     public int getFreeCapacity() {
         return playerManager.getFreeCapacity();
     }

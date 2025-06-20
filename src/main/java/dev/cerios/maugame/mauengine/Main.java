@@ -34,5 +34,6 @@ public class Main {
         System.out.println("---");
         game.playDrawMove(player2.getPlayerId(), 1);
         System.out.println("---");
+        System.out.println(game.getGameState());
     }
 }

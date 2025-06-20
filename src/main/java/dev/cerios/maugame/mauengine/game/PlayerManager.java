@@ -12,8 +12,8 @@ import java.util.function.Predicate;
 import static dev.cerios.maugame.mauengine.game.PlayerIdGenerator.generatePlayerId;
 
 class PlayerManager {
-    private static final int MAX_PLAYERS = 2;
-    private static final int MIN_PLAYERS = 2;
+    public static final int MAX_PLAYERS = 2;
+    public static final int MIN_PLAYERS = 2;
 
     @Getter
     private final Map<String, Player> playersById = new HashMap<>();
@@ -21,6 +21,7 @@ class PlayerManager {
     @Getter
     private byte activeCounter = 0;
     private final Random random;
+    private final List<Player> _players = new ArrayList<>(MAX_PLAYERS);
 
     public PlayerManager(Random random) {
         this.random = random;
@@ -29,8 +30,6 @@ class PlayerManager {
     public List<Player> getPlayers() {
         return Collections.unmodifiableList(_players);
     }
-
-    private final List<Player> _players = new ArrayList<>(MAX_PLAYERS);
 
     public Player registerPlayer(String username, GameEventListener eventListener) throws GameException {
         if (_players.size() >= MAX_PLAYERS)
