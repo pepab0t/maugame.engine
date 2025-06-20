@@ -81,7 +81,7 @@ class GameCore {
         }
         playerHand.remove(cardIndex);
         if (playerHand.isEmpty()) {
-            playerManager.deactivatePlayer(playerId);
+            playerManager.deactivatePlayer(playerId, false);
             playerRank.add(player.getUsername());
             actions.add(new WinAction(player));
 

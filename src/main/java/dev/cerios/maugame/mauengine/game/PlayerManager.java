@@ -5,7 +5,10 @@ import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
 import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -60,18 +63,22 @@ class PlayerManager {
                 .orElseThrow(() -> new PlayerMoveException(playerId));
     }
 
-    public DeactivateAction deactivatePlayer(final String playerId) throws PlayerMoveException {
+    public void deactivatePlayer(final String playerId, boolean sendAction) throws PlayerMoveException {
         var player = getPlayer(playerId);
         player.disable();
         activeCounter--;
-        return new DeactivateAction(playerId);
+        if (sendAction) {
+            distributeActionToAll(new DeactivateAction(playerId));
+        }
     }
 
-    public ActivateAction activatePlayer(final String playerId) throws PlayerMoveException {
+    public void activatePlayer(final String playerId, boolean sendAction) throws PlayerMoveException {
         var player = getPlayer(playerId);
         player.enable();
         activeCounter++;
-        return new ActivateAction(player.getPlayerId());
+        if (sendAction) {
+            distributeActionToAll(new ActivateAction(playerId));
+        }
     }
 
     public void validateCanStart() throws GameException {
@@ -97,20 +104,21 @@ class PlayerManager {
     }
 
     public void distributeActionToAll(Action action) {
-        distributeAction(action, Player::isActive);
+        distributeAction(action, null);
     }
 
     public void distributeActionExcludingPlayer(Action action, String playerId) {
-        distributeAction(action, p -> p.isActive() && !p.getPlayerId().equals(playerId));
+        distributeAction(action, p -> !p.getPlayerId().equals(playerId));
     }
 
     private void distributeAction(
             Action action,
             Predicate<Player> playerPredicate
     ) {
-        _players.stream()
-                .filter(playerPredicate)
-                .forEach(player -> player.trigger(action));
+        var s = _players.stream();
+        if (playerPredicate != null)
+            s = s.filter(playerPredicate);
+        s.forEach(player -> player.trigger(action));
     }
 
     public int getFreeCapacity() {

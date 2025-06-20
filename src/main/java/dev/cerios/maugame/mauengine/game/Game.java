@@ -68,12 +68,12 @@ public class Game {
         core.start();
     }
 
-    public ActivateAction activatePlayer(String playerId) throws PlayerMoveException {
-        return playerManager.activatePlayer(playerId);
+    public void activatePlayer(String playerId) throws PlayerMoveException {
+        playerManager.activatePlayer(playerId, true);
     }
 
-    public DeactivateAction deactivatePlayer(String playerId) throws PlayerMoveException {
-        return playerManager.deactivatePlayer(playerId);
+    public void deactivatePlayer(String playerId) throws PlayerMoveException {
+        playerManager.deactivatePlayer(playerId, true);
     }
 
     public Stage getStage() {
