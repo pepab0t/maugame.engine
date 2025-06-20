@@ -5,22 +5,23 @@ import java.util.*;
 public class CardManager {
     private final Queue<Card> deck;
     private final Queue<Card> pile;
-    private final Random random = new Random(112);
+    private final Random random;
 
-    public static CardManager create() {
+    public static CardManager create(Random random) {
         Set<Card> cards = new HashSet<>();
         for (CardType type : CardType.values()) {
             for (Color color : Color.values()) {
                 cards.add(new Card(type, color));
             }
         }
-        return new CardManager(cards)
+        return new CardManager(cards, random)
                 .shuffleRemaining();
     }
 
-    private CardManager(Collection<Card> cards) {
+    private CardManager(Collection<Card> cards, Random random) {
         this.deck = new LinkedList<>(cards);
         this.pile = new LinkedList<>();
+        this.random = random;
     }
 
     public CardManager shuffleRemaining() {

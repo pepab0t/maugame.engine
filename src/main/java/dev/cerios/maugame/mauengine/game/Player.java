@@ -38,7 +38,7 @@ public class Player {
         active = false;
     }
 
-    public void trigger(Action action) {
+    void trigger(Action action) {
         eventListener.accept(this, action);
     }
 }

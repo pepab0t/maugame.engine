@@ -20,7 +20,11 @@ class PlayerManager {
     private final AtomicInteger currentPlayerIndex = new AtomicInteger(-1);
     @Getter
     private byte activeCounter = 0;
-    private final Random random = new Random(111);
+    private final Random random;
+
+    public PlayerManager(Random random) {
+        this.random = random;
+    }
 
     public List<Player> getPlayers() {
         return Collections.unmodifiableList(_players);
@@ -95,7 +99,7 @@ class PlayerManager {
         do {
             nextPlayer = _players.get(currentPlayerIndex.incrementAndGet() % _players.size());
         } while (!nextPlayer.isActive());
-        var action = new PlayerShiftAction(nextPlayer.getPlayerId());
+        var action = new PlayerShiftAction(nextPlayer);
         distributeActionToAll(action);
     }
 
@@ -104,7 +108,7 @@ class PlayerManager {
     }
 
     public void distributeActionExcludingPlayer(Action action, String playerId) {
-        distributeAction(action, p -> p.isActive() && p.getPlayerId().equals(playerId));
+        distributeAction(action, p -> p.isActive() && !p.getPlayerId().equals(playerId));
     }
 
     private void distributeAction(

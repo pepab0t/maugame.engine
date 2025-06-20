@@ -28,11 +28,12 @@ public class Game {
     private final GameCore core;
     private final PlayerManager playerManager;
 
-    public void playCardMove(final String playerId, Card cardToPlay, Optional<Color> nextColor) throws MauEngineBaseException {
-        if (nextColor.isPresent()) {
-            core.performPlayCard(playerId, cardToPlay, nextColor.get());
-        }
+    public void playCardMove(final String playerId, Card cardToPlay ) throws MauEngineBaseException {
         core.performPlayCard(playerId, cardToPlay);
+    }
+
+    public void playCardMove(final String playerId, Card cardToPlay, Color nextColor) throws MauEngineBaseException {
+        core.performPlayCard(playerId, cardToPlay, nextColor);
     }
 
     public void playDrawMove(final String playerId, int count) throws MauEngineBaseException {
