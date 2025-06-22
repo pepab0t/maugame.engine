@@ -3,17 +3,25 @@ package dev.cerios.maugame.mauengine.card;
 import dev.cerios.maugame.mauengine.exception.CardException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class CardManagerTest {
 
     private CardManager cardManager;
+    @Mock
+    private CardComparer comparer;
 
     @BeforeEach
     void setUp() {
@@ -26,7 +34,8 @@ class CardManagerTest {
                         new Card(CardType.NINE, Color.HEARTS),
                         new Card(CardType.KING, Color.CLUBS)
                 ),
-                random
+                random,
+                comparer
         );
     }
 
@@ -99,10 +108,59 @@ class CardManagerTest {
     }
 
     @Test
+    void whenOneCardDrawnTooManyTimes_thenThrow() throws CardException {
+        // setup
+        for (int i = 0; i < 4; i++) {
+            cardManager.draw();
+        }
+
+        // when, then
+        assertThatThrownBy(() -> cardManager.draw())
+                .isInstanceOf(CardException.class);
+    }
+
+    @Test
     void whenDrawMoreThanDeckContains_thenThrow() {
         // when, then
         assertThatThrownBy(() -> cardManager.draw(5))
                 .isInstanceOf(CardException.class);
+    }
+
+    @Test
+    void whenCardManagerInitializedWithEmptyCollection_thenThrow() {
+        // when, then
+        assertThatThrownBy(() -> new CardManager(Collections.emptyList(), new Random(), comparer))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void whenPlayCard_pileAndDeckShouldUpdate() throws Exception {
+        // setup
+        Card cardToPlay = new Card(CardType.ACE, Color.HEARTS);
+        Card pileCard = cardManager.startPile();
+
+        when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
+
+        // when
+        boolean canBePlayed = cardManager.playCard(cardToPlay, null);
+
+        // then
+        assertThat(canBePlayed).isTrue();
+        assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
+                .containsExactly(
+                        new Card(CardType.SEVEN, Color.SPADES),
+                        new Card(CardType.EIGHT, Color.DIAMONDS),
+                        new Card(CardType.NINE, Color.HEARTS),
+                        new Card(CardType.KING, Color.CLUBS),
+                        new Card(CardType.JACK, Color.HEARTS)
+                );
+        assertThat(cardManager.deckSize()).isEqualTo(5);
+        assertThat(cardManager.peekPile()).isEqualTo(cardToPlay);
+    }
+
+    @Test
+    void whenCardPlayedAndPileNotStarted_thenThrow() {
+
     }
 
     public static Object getField(Object object, String fieldName) throws Exception {
