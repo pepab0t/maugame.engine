@@ -1,6 +1,7 @@
 package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.card.*;
+import dev.cerios.maugame.mauengine.exception.CardException;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
@@ -166,7 +167,12 @@ class GameCore {
         playerManager.validateCanStart();
 
         for (Player player : playerManager.getPlayers()) {
-            var drawnCards = cardManager.draw(4);
+            List<Card> drawnCards;
+            try {
+                drawnCards = cardManager.draw(4);
+            } catch (CardException e) {
+                throw new IllegalStateException(e);
+            }
             player.getHand().addAll(drawnCards);
         }
 

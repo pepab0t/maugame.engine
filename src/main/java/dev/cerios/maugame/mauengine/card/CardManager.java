@@ -1,5 +1,7 @@
 package dev.cerios.maugame.mauengine.card;
 
+import dev.cerios.maugame.mauengine.exception.CardException;
+
 import java.util.*;
 
 public class CardManager {
@@ -18,7 +20,9 @@ public class CardManager {
                 .shuffleRemaining();
     }
 
-    private CardManager(Collection<Card> cards, Random random) {
+    public CardManager(Collection<Card> cards, Random random) {
+        if (cards.isEmpty())
+            throw new IllegalStateException("Cards must not be empty");
         this.deck = new LinkedList<>(cards);
         this.pile = new LinkedList<>();
         this.random = random;
@@ -34,13 +38,15 @@ public class CardManager {
         return this;
     }
 
-    public Card draw() throws NoSuchElementException {
+    public Card draw() throws CardException {
+        if (deck.size() + pile.size() < 2)
+            throw new CardException("Cannot draw more cards");
         return deck.remove();
     }
 
-    public List<Card> draw(int n) {
-        if (deck.size() < n) {
-            throw new NoSuchElementException("Cannot draw " + n + " cards, only " + deck.size() + " cards are available.");
+    public List<Card> draw(int n) throws CardException {
+        if (deck.size() + pile.size() < n + 1) {
+            throw new CardException("Cannot draw " + n + " cards, only " + (deck.size() - 1) + " cards are available.");
         }
         List<Card> cardList = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
