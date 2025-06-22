@@ -7,14 +7,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Queue;
-import java.util.Random;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CardManagerTest {
@@ -134,7 +131,7 @@ class CardManagerTest {
     }
 
     @Test
-    void whenPlayCard_pileAndDeckShouldUpdate() throws Exception {
+    void whenPlayValidCard_pileAndDeckShouldUpdate() throws Exception {
         // setup
         Card cardToPlay = new Card(CardType.ACE, Color.HEARTS);
         Card pileCard = cardManager.startPile();
@@ -156,11 +153,152 @@ class CardManagerTest {
                 );
         assertThat(cardManager.deckSize()).isEqualTo(5);
         assertThat(cardManager.peekPile()).isEqualTo(cardToPlay);
+        verify(comparer).clear();
+    }
+
+    @Test
+    void whenPlayInvalidCard_thenDontUpdate() throws Exception {
+        // setup
+        Card cardToPlay = new Card(CardType.ACE, Color.HEARTS);
+        Card pileCard = cardManager.startPile();
+
+        when(comparer.compare(pileCard, cardToPlay)).thenReturn(false);
+
+        // when
+        boolean canBePlayed = cardManager.playCard(cardToPlay, null);
+
+        // then
+        assertThat(canBePlayed).isFalse();
+        assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
+                .containsExactly(
+                        new Card(CardType.SEVEN, Color.SPADES),
+                        new Card(CardType.EIGHT, Color.DIAMONDS),
+                        new Card(CardType.NINE, Color.HEARTS),
+                        new Card(CardType.KING, Color.CLUBS)
+                );
+        assertThat(cardManager.deckSize()).isEqualTo(4);
+        assertThat(cardManager.peekPile()).isEqualTo(pileCard);
+    }
+
+    @Test
+    void whenPlayNonQueenAndColorProvided_thenIgnoreIt() throws CardException {
+        // setup
+        Card cardToPlay = new Card(CardType.KING, Color.HEARTS);
+        Card pileCard = cardManager.startPile();
+
+        when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
+
+        // when
+        boolean canBePlayed = cardManager.playCard(cardToPlay, Color.SPADES);
+
+        // then
+        assertThat(canBePlayed).isTrue();
+        verify(comparer, never()).setNextColor(any(Color.class));
+        assertThat(cardManager.deckSize()).isEqualTo(5);
+        assertThat(cardManager.peekPile()).isEqualTo(cardToPlay);
+    }
+
+    @Test
+    void whenPlayQueenAndColorNotProvided_thenThrow() {
+        // setup
+        Card cardToPlay = new Card(CardType.QUEEN, Color.HEARTS);
+        Card pileCard = cardManager.startPile();
+
+        when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
+
+        // when, then
+        assertThatThrownBy(() -> cardManager.playCard(cardToPlay, null))
+                .isInstanceOf(CardException.class);
+    }
+
+    @Test
+    void whenPlayQueenAndColorProvided_registerIt() throws CardException {
+        // setup
+        Card cardToPlay = new Card(CardType.QUEEN, Color.HEARTS);
+        Card pileCard = cardManager.startPile();
+
+        when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
+
+        // when
+        boolean canBePlayed = cardManager.playCard(cardToPlay, Color.SPADES);
+
+        // then
+        assertThat(canBePlayed).isTrue();
+        verify(comparer).setNextColor(any(Color.class));
+        verify(comparer, never()).clear();
     }
 
     @Test
     void whenCardPlayedAndPileNotStarted_thenThrow() {
+        // when
+        assertThatThrownBy(() -> cardManager.playCard(new Card(CardType.JACK, Color.CLUBS), null))
+                .isInstanceOf(CardException.class);
+    }
 
+    @Test
+    void testShuffleRemainingCardsCorrectly() throws Exception {
+        // when
+        cardManager.shuffleRemaining();
+
+        // than
+        cardManager.shuffleRemaining();
+        assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
+                .containsExactlyInAnyOrder(
+                        new Card(CardType.JACK, Color.HEARTS),
+                        new Card(CardType.SEVEN, Color.SPADES),
+                        new Card(CardType.EIGHT, Color.DIAMONDS),
+                        new Card(CardType.NINE, Color.HEARTS),
+                        new Card(CardType.KING, Color.CLUBS)
+                )
+                .doesNotContainSequence(
+                        new Card(CardType.JACK, Color.HEARTS),
+                        new Card(CardType.SEVEN, Color.SPADES),
+                        new Card(CardType.EIGHT, Color.DIAMONDS),
+                        new Card(CardType.NINE, Color.HEARTS),
+                        new Card(CardType.KING, Color.CLUBS)
+                );
+    }
+
+    @Test
+    void testShuffleRemainingCardsWithPileCorrectly() throws Exception {
+        // setup
+        Card pileCard = cardManager.startPile();
+
+        // when
+        cardManager.shuffleRemaining();
+
+        // than
+        cardManager.shuffleRemaining();
+        assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
+                .containsExactlyInAnyOrder(
+                        new Card(CardType.SEVEN, Color.SPADES),
+                        new Card(CardType.EIGHT, Color.DIAMONDS),
+                        new Card(CardType.NINE, Color.HEARTS),
+                        new Card(CardType.KING, Color.CLUBS)
+                )
+                .doesNotContainSequence(
+                        new Card(CardType.SEVEN, Color.SPADES),
+                        new Card(CardType.EIGHT, Color.DIAMONDS),
+                        new Card(CardType.NINE, Color.HEARTS),
+                        new Card(CardType.KING, Color.CLUBS)
+                );
+        assertThat(cardManager.peekPile()).isEqualTo(pileCard);
+    }
+
+    @Test
+    void factoryIncludesFullSetOfCards() throws Exception {
+        // when
+        var created = CardManager.create(new Random(878), comparer);
+        var cardSet = new HashSet<>(((Queue<Card>) getField(created, "deck")));
+
+        // then
+        Set<Card> expected = new HashSet<>();
+        for (Color color : Color.values()) {
+            for (CardType cardType : CardType.values()) {
+                expected.add(new Card(cardType, color));
+            }
+        }
+        assertThat(cardSet).containsExactlyInAnyOrderElementsOf(expected);
     }
 
     public static Object getField(Object object, String fieldName) throws Exception {
