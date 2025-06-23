@@ -299,6 +299,65 @@ class CardManagerTest {
         assertThat(cardSet).containsExactlyInAnyOrderElementsOf(expected);
     }
 
+    @Test
+    void whenPlayCardThatDoesNotBelongToTheGame_thenThrow() {
+        // setup
+        var cardToPlay = new Card(CardType.TEN, Color.CLUBS);
+        cardManager.startPile();
+
+        // when, then
+        assertThatThrownBy(() -> cardManager.playCard(cardToPlay, null))
+                .isInstanceOf(CardException.class);
+    }
+
+    @Test
+    void testCardMultiplicationHandledCorrectly() throws Exception {
+        // setup
+        var manager = new CardManager(
+                List.of(
+                        new Card(CardType.JACK, Color.CLUBS),
+                        new Card(CardType.JACK, Color.CLUBS),
+                        new Card(CardType.JACK, Color.CLUBS)
+                ),
+                new Random(121),
+                comparer
+        );
+        manager.startPile();
+        @SuppressWarnings("unchecked")
+        var floatingCards = (Map<Card, Integer>) getField(manager, "floatingCards");
+        when(comparer.compare(any(Card.class), any(Card.class))).thenReturn(true);
+
+        // when, then
+        manager.draw();
+        assertThat(floatingCards).containsOnlyKeys(new Card(CardType.JACK, Color.CLUBS));
+        assertThat(floatingCards.get(new Card(CardType.JACK, Color.CLUBS))).isEqualTo(1);
+        manager.draw();
+        assertThat(floatingCards.get(new Card(CardType.JACK, Color.CLUBS))).isEqualTo(2);
+        manager.playCard(new Card(CardType.JACK, Color.CLUBS), null);
+        assertThat(floatingCards.get(new Card(CardType.JACK, Color.CLUBS))).isEqualTo(1);
+        manager.playCard(new Card(CardType.JACK, Color.CLUBS), null);
+        assertThat(floatingCards).isEmpty();
+        // third card is not in the game
+        assertThatThrownBy(() -> manager.playCard(new Card(CardType.JACK, Color.CLUBS), null))
+                .isInstanceOf(CardException.class);
+    }
+
+    @Test
+    void testForIllegalState_ifPrivateVarIsChangedFromOutside() throws Exception {
+        // setup
+        cardManager.startPile();
+        var card = cardManager.draw();
+        @SuppressWarnings("unchecked")
+        var floatingCards = (Map<Card,Integer>) getField(cardManager, "floatingCards");
+        when(comparer.compare(any(Card.class), any(Card.class))).thenReturn(true);
+
+        floatingCards.put(card, 0);
+
+        // when
+        assertThatThrownBy(() -> cardManager.playCard(card, null))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     public static Object getField(Object object, String fieldName) throws Exception {
         var field = object.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);

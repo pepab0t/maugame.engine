@@ -135,10 +135,11 @@ public class CardManager {
         floatingCards.put(card, floatingCards.getOrDefault(card, 0) + 1);
     }
 
-    private void removeFloatingCard(Card card) throws IllegalStateException {
-        Integer cardCount = floatingCards.get(card);
+    private void removeFloatingCard(Card card) {
+        int cardCount = floatingCards.getOrDefault(card, 0);
 
-        if (cardCount == null || cardCount == 0)
+        // this scenario should never happen, unless field is changed with reflection
+        if (cardCount == 0)
             throw new IllegalStateException("Cannot remove " + card);
 
         if (cardCount == 1)
