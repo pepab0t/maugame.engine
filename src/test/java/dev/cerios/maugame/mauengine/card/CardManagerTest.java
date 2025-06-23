@@ -25,7 +25,7 @@ class CardManagerTest {
         var random = new Random(868);
         cardManager = new CardManager(
                 List.of(
-                        new Card(CardType.JACK, Color.HEARTS),
+                        new Card(CardType.QUEEN, Color.HEARTS),
                         new Card(CardType.SEVEN, Color.SPADES),
                         new Card(CardType.EIGHT, Color.DIAMONDS),
                         new Card(CardType.NINE, Color.HEARTS),
@@ -57,7 +57,7 @@ class CardManagerTest {
         // then
         assertThat(deckSize).isEqualTo(4);
         assertThat(peekedCard).isSameAs(pileCard);
-        assertThat(pileCard).isEqualTo(new Card(CardType.JACK, Color.HEARTS));
+        assertThat(pileCard).isEqualTo(new Card(CardType.QUEEN, Color.HEARTS));
     }
 
     @Test
@@ -67,7 +67,7 @@ class CardManagerTest {
 
         // then
         assertThat(cardManager.deckSize()).isEqualTo(4);
-        assertThat(drawnCard).isEqualTo(new Card(CardType.JACK, Color.HEARTS));
+        assertThat(drawnCard).isEqualTo(new Card(CardType.QUEEN, Color.HEARTS));
         assertThat(
                 ((Queue<Card>) getField(cardManager, "deck"))
                         .stream()
@@ -89,7 +89,7 @@ class CardManagerTest {
         // then
         assertThat(cardManager.deckSize()).isEqualTo(1);
         assertThat(drawnCards).containsExactly(
-                new Card(CardType.JACK, Color.HEARTS),
+                new Card(CardType.QUEEN, Color.HEARTS),
                 new Card(CardType.SEVEN, Color.SPADES),
                 new Card(CardType.EIGHT, Color.DIAMONDS),
                 new Card(CardType.NINE, Color.HEARTS)
@@ -133,8 +133,8 @@ class CardManagerTest {
     @Test
     void whenPlayValidCard_pileAndDeckShouldUpdate() throws Exception {
         // setup
-        Card cardToPlay = new Card(CardType.ACE, Color.HEARTS);
         Card pileCard = cardManager.startPile();
+        Card cardToPlay = cardManager.draw();
 
         when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
 
@@ -145,13 +145,12 @@ class CardManagerTest {
         assertThat(canBePlayed).isTrue();
         assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
                 .containsExactly(
-                        new Card(CardType.SEVEN, Color.SPADES),
                         new Card(CardType.EIGHT, Color.DIAMONDS),
                         new Card(CardType.NINE, Color.HEARTS),
                         new Card(CardType.KING, Color.CLUBS),
-                        new Card(CardType.JACK, Color.HEARTS)
+                        new Card(CardType.QUEEN, Color.HEARTS)
                 );
-        assertThat(cardManager.deckSize()).isEqualTo(5);
+        assertThat(cardManager.deckSize()).isEqualTo(4);
         assertThat(cardManager.peekPile()).isEqualTo(cardToPlay);
         verify(comparer).clear();
     }
@@ -159,8 +158,8 @@ class CardManagerTest {
     @Test
     void whenPlayInvalidCard_thenDontUpdate() throws Exception {
         // setup
-        Card cardToPlay = new Card(CardType.ACE, Color.HEARTS);
         Card pileCard = cardManager.startPile();
+        Card cardToPlay = cardManager.draw();
 
         when(comparer.compare(pileCard, cardToPlay)).thenReturn(false);
 
@@ -171,20 +170,19 @@ class CardManagerTest {
         assertThat(canBePlayed).isFalse();
         assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
                 .containsExactly(
-                        new Card(CardType.SEVEN, Color.SPADES),
                         new Card(CardType.EIGHT, Color.DIAMONDS),
                         new Card(CardType.NINE, Color.HEARTS),
                         new Card(CardType.KING, Color.CLUBS)
                 );
-        assertThat(cardManager.deckSize()).isEqualTo(4);
+        assertThat(cardManager.deckSize()).isEqualTo(3);
         assertThat(cardManager.peekPile()).isEqualTo(pileCard);
     }
 
     @Test
     void whenPlayNonQueenAndColorProvided_thenIgnoreIt() throws CardException {
         // setup
-        Card cardToPlay = new Card(CardType.KING, Color.HEARTS);
         Card pileCard = cardManager.startPile();
+        Card cardToPlay = cardManager.draw();
 
         when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
 
@@ -194,14 +192,14 @@ class CardManagerTest {
         // then
         assertThat(canBePlayed).isTrue();
         verify(comparer, never()).setNextColor(any(Color.class));
-        assertThat(cardManager.deckSize()).isEqualTo(5);
+        assertThat(cardManager.deckSize()).isEqualTo(4);
         assertThat(cardManager.peekPile()).isEqualTo(cardToPlay);
     }
 
     @Test
-    void whenPlayQueenAndColorNotProvided_thenThrow() {
+    void whenPlayQueenAndColorNotProvided_thenThrow() throws CardException {
         // setup
-        Card cardToPlay = new Card(CardType.QUEEN, Color.HEARTS);
+        Card cardToPlay = cardManager.draw();
         Card pileCard = cardManager.startPile();
 
         when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
@@ -214,7 +212,7 @@ class CardManagerTest {
     @Test
     void whenPlayQueenAndColorProvided_registerIt() throws CardException {
         // setup
-        Card cardToPlay = new Card(CardType.QUEEN, Color.HEARTS);
+        Card cardToPlay = cardManager.draw();
         Card pileCard = cardManager.startPile();
 
         when(comparer.compare(pileCard, cardToPlay)).thenReturn(true);
@@ -240,18 +238,18 @@ class CardManagerTest {
         // when
         cardManager.shuffleRemaining();
 
-        // than
+        // then
         cardManager.shuffleRemaining();
         assertThat(((Queue<Card>) getField(cardManager, "deck")).stream())
                 .containsExactlyInAnyOrder(
-                        new Card(CardType.JACK, Color.HEARTS),
+                        new Card(CardType.QUEEN, Color.HEARTS),
                         new Card(CardType.SEVEN, Color.SPADES),
                         new Card(CardType.EIGHT, Color.DIAMONDS),
                         new Card(CardType.NINE, Color.HEARTS),
                         new Card(CardType.KING, Color.CLUBS)
                 )
                 .doesNotContainSequence(
-                        new Card(CardType.JACK, Color.HEARTS),
+                        new Card(CardType.QUEEN, Color.HEARTS),
                         new Card(CardType.SEVEN, Color.SPADES),
                         new Card(CardType.EIGHT, Color.DIAMONDS),
                         new Card(CardType.NINE, Color.HEARTS),

@@ -8,6 +8,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class CardManager {
     private final Queue<Card> deck;
     private final Queue<Card> pile;
+    private final Map<Card, Integer> floatingCards;
     private final Random random;
 
     private final CardComparer cardComparer;
@@ -30,6 +31,7 @@ public class CardManager {
             throw new IllegalStateException("Cards must not be empty");
         this.deck = new LinkedList<>(cards);
         this.pile = new LinkedList<>();
+        this.floatingCards = new HashMap<>();
         this.random = random;
         this.cardComparer = cardComparer;
     }
@@ -50,14 +52,7 @@ public class CardManager {
     }
 
     public Card draw() throws CardException {
-        try {
-            lock.writeLock().lock();
-            if (deck.size() + pile.size() < 2)
-                throw new CardException("Cannot draw more cards");
-            return deck.remove();
-        } finally {
-            lock.writeLock().unlock();
-        }
+        return draw(1).getFirst();
     }
 
     public List<Card> draw(int n) throws CardException {
@@ -68,7 +63,9 @@ public class CardManager {
             }
             List<Card> cardList = new ArrayList<>(n);
             for (int i = 0; i < n; i++) {
-                cardList.add(deck.remove());
+                var toDraw = deck.remove();
+                cardList.add(toDraw);
+                addFloatingCard(toDraw);
             }
             return cardList;
         } finally {
@@ -101,7 +98,10 @@ public class CardManager {
             lock.writeLock().lock();
             var pileCard = pile.peek();
             if (pileCard == null)
-                throw new CardException("Pile not started");
+                throw new CardException("Pile not started.");
+
+            if (!isFloatingCard(card))
+                throw new CardException("Card does not belong to the game.");
 
             if (!cardComparer.compare(pileCard, card))
                 return false;
@@ -115,6 +115,7 @@ public class CardManager {
             }
             pile.add(card);
             deck.add(pile.remove());
+            removeFloatingCard(card);
             return true;
         } finally {
             lock.writeLock().unlock();
@@ -128,5 +129,25 @@ public class CardManager {
         } finally {
             lock.readLock().unlock();
         }
+    }
+
+    private void addFloatingCard(Card card) {
+        floatingCards.put(card, floatingCards.getOrDefault(card, 0) + 1);
+    }
+
+    private void removeFloatingCard(Card card) throws IllegalStateException {
+        Integer cardCount = floatingCards.get(card);
+
+        if (cardCount == null || cardCount == 0)
+            throw new IllegalStateException("Cannot remove " + card);
+
+        if (cardCount == 1)
+            floatingCards.remove(card);
+        else
+            floatingCards.put(card, cardCount - 1);
+    }
+
+    private boolean isFloatingCard(Card card) {
+        return floatingCards.containsKey(card);
     }
 }
