@@ -1,6 +1,8 @@
 package dev.cerios.maugame.mauengine.game.action;
 
-public record DeactivateAction(String playerId) implements Action {
+import dev.cerios.maugame.mauengine.game.Player;
+
+public record DeactivateAction(Player player) implements Action {
     @Override
     public ActionType type() {
         return ActionType.DEACTIVATE_PLAYER;

@@ -1,6 +1,9 @@
 package dev.cerios.maugame.mauengine.game;
 
-import dev.cerios.maugame.mauengine.card.*;
+import dev.cerios.maugame.mauengine.card.Card;
+import dev.cerios.maugame.mauengine.card.CardManager;
+import dev.cerios.maugame.mauengine.card.CardType;
+import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.CardException;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
@@ -25,10 +28,16 @@ class GameCore {
     private final CardManager cardManager;
     private final PlayerManager playerManager;
 
-    private final List<String> playerRank = new ArrayList<>(PlayerManager.MAX_PLAYERS);
+    private final List<String> playerRank;
     private volatile GameEffect gameEffect = null;
     @Getter
     private volatile Stage stage = LOBBY;
+
+    public GameCore(CardManager cardManager, PlayerManager playerManager) {
+        this.cardManager = cardManager;
+        this.playerManager = playerManager;
+        this.playerRank = new ArrayList<>(playerManager.MAX_PLAYERS);
+    }
 
     public void performPlayCard(final String playerId, Card card) throws MauEngineBaseException {
         performPlayCard(playerId, card, null);
@@ -72,18 +81,9 @@ class GameCore {
         }
         playerHand.remove(cardIndex);
         if (playerHand.isEmpty()) {
-            playerManager.deactivatePlayer(playerId, false);
-            playerRank.add(player.getUsername());
-            actions.add(new WinAction(player));
-
-            if (playerManager.getActiveCounter() == 1) {
-                var losingPlayer = playerManager.getPlayers().stream().filter(Player::isActive).findFirst().get();
-                playerRank.add(losingPlayer.getUsername());
-                actions.add(new LoseAction(losingPlayer)); // redundant
-                actions.add(new SendRankAction(playerRank));
-                actions.add(new EndAction());
+            var shouldContinue = playerManager.playerWin(player);
+            if (!shouldContinue) {
                 stage = FINISH;
-                actions.forEach(playerManager::distributeActionToAll);
                 return;
             }
         }
