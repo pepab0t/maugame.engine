@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
+import static dev.cerios.maugame.mauengine.TestUtils.getField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
@@ -356,11 +357,5 @@ class CardManagerTest {
         // when
         assertThatThrownBy(() -> cardManager.playCard(card, null))
                 .isInstanceOf(IllegalStateException.class);
-    }
-
-    public static Object getField(Object object, String fieldName) throws Exception {
-        var field = object.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        return field.get(object);
     }
 }

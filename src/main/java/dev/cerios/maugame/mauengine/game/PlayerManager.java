@@ -5,35 +5,52 @@ import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
 import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static dev.cerios.maugame.mauengine.game.PlayerIdGenerator.generatePlayerId;
+import static dev.cerios.maugame.mauengine.game.Stage.FINISH;
 
 class PlayerManager {
-    public static final int MAX_PLAYERS = 2;
-    public static final int MIN_PLAYERS = 2;
+    public final int MAX_PLAYERS;
+    public final int MIN_PLAYERS;
 
-    private final AtomicInteger currentPlayerIndex = new AtomicInteger(-1);
+    private final AtomicInteger currentPlayerIndex = new AtomicInteger(-2);
     @Getter
-    private byte activeCounter = 0;
+    private int activeCounter = 0;
     private final Random random;
-    private final List<Player> _players = new ArrayList<>(MAX_PLAYERS);
+    private final List<Player> players;
+    private final SequencedSet<String> playerRank;
+    private final List<Runnable> closeListeners;
 
+    /**
+     * initiates with maxPlayers = minPlayers = 2
+     * @param random
+     */
     public PlayerManager(Random random) {
+        this(random, 2, 2);
+    }
+
+    public PlayerManager(Random random, int maxPlayers, int minPlayers) {
         this.random = random;
+        this.MAX_PLAYERS = maxPlayers;
+        this.MIN_PLAYERS = minPlayers;
+        this.players = new ArrayList<>(MAX_PLAYERS);
+        this.playerRank = new LinkedHashSet<>(MAX_PLAYERS);
+        this.closeListeners = new LinkedList<>();
     }
 
     public List<Player> getPlayers() {
-        return Collections.unmodifiableList(_players);
+        return Collections.unmodifiableList(players);
+    }
+
+    public void listenClose(Runnable listener) {
+        this.closeListeners.add(listener);
     }
 
     public Player registerPlayer(String username, GameEventListener eventListener) throws GameException {
-        if (_players.size() >= MAX_PLAYERS)
+        if (players.size() >= MAX_PLAYERS)
             throw new GameException(
                     String.format(
                             "The game has exceeded the maximum number of players (%s).",
@@ -43,62 +60,93 @@ class PlayerManager {
 
         var player = new Player(generatePlayerId(), username, eventListener);
         var action = new RegisterAction(player, false);
-        _players.stream()
+        players.stream()
                 .filter(Player::isActive)
                 .forEach(p -> p.trigger(action));
-        _players.add(player);
+        players.add(player);
         player.trigger(new RegisterAction(player, true));
+        player.trigger(new PlayersAction(new ArrayList<>(players)));
         activeCounter++;
         return player;
     }
 
     public Player currentPlayer() {
-        return _players.get(currentPlayerIndex.get() % _players.size());
+        var currentIndex = currentPlayerIndex.get();
+        if  (currentIndex == -2)
+            throw new RuntimeException("Player manager has not been initialized yet.");
+        return players.get(currentIndex % players.size());
     }
 
-    public Player getPlayer(String playerId) throws PlayerMoveException {
-        return _players.stream()
+    public Player getPlayer(String playerId) throws GameException {
+        return players.stream()
                 .filter(p -> p.getPlayerId().equals(playerId))
                 .findFirst()
-                .orElseThrow(() -> new PlayerMoveException(playerId));
+                .orElseThrow(() -> new GameException("No player with id `" + playerId + "` was found."));
     }
 
-    public void deactivatePlayer(final String playerId, boolean sendAction) throws PlayerMoveException {
-        var player = getPlayer(playerId);
+    /**
+     * Make player a winner and deactivates him.
+     * @param player to transform to winner
+     * @return whether game should continue
+     */
+    public boolean playerWin(Player player) {
         player.disable();
         activeCounter--;
-        if (sendAction) {
-            distributeActionToAll(new DeactivateAction(playerId));
+        playerRank.add(player.getUsername());
+        distributeActionToAll(new WinAction(player));
+
+        if (activeCounter == 1) {
+            loseLastActivePlayer();
+            return false;
+        }
+        distributeActionToAll(new SendRankAction(getPlayerRank()));
+        return true;
+    }
+
+    public void deactivatePlayer(final String playerId) throws GameException {
+        var player = getPlayer(playerId);
+        if (!player.isActive())
+            return;
+        distributeActionToAll(new DeactivateAction(player));
+
+        activeCounter--;
+        player.disable();
+
+        // if pm is initialized or at least 2 active players
+        if (currentPlayerIndex.get() < -1 || activeCounter > 1)
+            return;
+
+        if (activeCounter == 1) {
+            playerWin(findNextPlayer());
+            distributeActionToAll(new EndAction());
+        }
+        // send end notification
+        for (var closeListener : closeListeners) {
+            closeListener.run();
         }
     }
 
-    public void activatePlayer(final String playerId, boolean sendAction) throws PlayerMoveException {
+    public void activatePlayer(final String playerId) throws GameException {
         var player = getPlayer(playerId);
+        if (player.isActive())
+            return;
         player.enable();
         activeCounter++;
-        if (sendAction) {
-            distributeActionToAll(new ActivateAction(playerId));
-        }
+        distributeActionToAll(new ActivateAction(playerId));
     }
 
     public void validateCanStart() throws GameException {
-        if (_players.size() < MIN_PLAYERS)
-            throw new GameException("The game needs at least " + MIN_PLAYERS + " players to start.");
+        if (activeCounter < MIN_PLAYERS)
+            throw new GameException("The game needs at least " + MIN_PLAYERS + " active players to start.");
     }
 
-    public void initializePlayer() throws GameException {
-        var initValue = random.nextInt(_players.size() + 1);
-        currentPlayerIndex.set(initValue);
+    public void initializePlayer() {
+        currentPlayerIndex.set(random.nextInt(players.size()) - 1);
         shiftPlayer();
     }
 
     public void shiftPlayer() {
-        if (activeCounter < 2)
-            throw new RuntimeException("There is no next player");
-        Player nextPlayer;
-        do {
-            nextPlayer = _players.get(currentPlayerIndex.incrementAndGet() % _players.size());
-        } while (!nextPlayer.isActive());
+        var nextPlayer = findNextPlayer();
         var action = new PlayerShiftAction(nextPlayer);
         distributeActionToAll(action);
     }
@@ -115,13 +163,37 @@ class PlayerManager {
             Action action,
             Predicate<Player> playerPredicate
     ) {
-        var s = _players.stream();
+        var s = players.stream();
         if (playerPredicate != null)
             s = s.filter(playerPredicate);
         s.forEach(player -> player.trigger(action));
     }
 
     public int getFreeCapacity() {
-        return MAX_PLAYERS - _players.size();
+        return MAX_PLAYERS - players.size();
+    }
+
+    public SequencedSet<String> getPlayerRank() {
+        return Collections.unmodifiableSequencedSet(playerRank);
+    }
+
+    private Player findNextPlayer() {
+        if (activeCounter < 1)
+            throw new RuntimeException("There is no next player");
+        Player nextPlayer;
+        do {
+            nextPlayer = players.get(currentPlayerIndex.incrementAndGet() % players.size());
+        } while (!nextPlayer.isActive());
+        return nextPlayer;
+    }
+
+    private void loseLastActivePlayer() {
+        var losingPlayer = findNextPlayer();
+        losingPlayer.disable();
+        activeCounter--;
+        playerRank.add(losingPlayer.getUsername());
+        losingPlayer.trigger(new LoseAction(losingPlayer));
+        distributeActionToAll(new SendRankAction(getPlayerRank()));
+        distributeActionToAll(new EndAction());
     }
 }

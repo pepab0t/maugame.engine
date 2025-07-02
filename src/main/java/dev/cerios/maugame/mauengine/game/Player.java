@@ -2,6 +2,7 @@ package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.game.action.Action;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -12,7 +13,6 @@ import java.util.function.BiConsumer;
 @ToString(onlyExplicitlyIncluded = true)
 public class Player {
     @Getter
-    @ToString.Include
     private final String playerId;
     @Getter
     @ToString.Include
@@ -30,11 +30,11 @@ public class Player {
         this.username = username;
     }
 
-    public void enable() {
+    void enable() {
         active = true;
     }
 
-    public void disable() {
+    void disable() {
         active = false;
     }
 

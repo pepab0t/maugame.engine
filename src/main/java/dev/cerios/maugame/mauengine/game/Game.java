@@ -49,10 +49,7 @@ public class Game {
         if (core.getStage() != LOBBY) {
             throw new GameException("The game has already started.");
         }
-        var player = playerManager.registerPlayer(username, eventListener);
-        var action = new PlayersAction(playerManager.getPlayers());
-        player.trigger(action);
-        return player;
+        return playerManager.registerPlayer(username, eventListener);
     }
 
     public GameState getGameState() {
@@ -68,12 +65,12 @@ public class Game {
         core.start();
     }
 
-    public void activatePlayer(String playerId) throws PlayerMoveException {
-        playerManager.activatePlayer(playerId, true);
+    public void activatePlayer(String playerId) throws GameException {
+        playerManager.activatePlayer(playerId);
     }
 
-    public void deactivatePlayer(String playerId) throws PlayerMoveException {
-        playerManager.deactivatePlayer(playerId, true);
+    public void deactivatePlayer(String playerId) throws GameException {
+        playerManager.deactivatePlayer(playerId);
     }
 
     public Stage getStage() {
