@@ -1,6 +1,7 @@
 package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.card.*;
+import dev.cerios.maugame.mauengine.exception.CardException;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
@@ -22,7 +23,6 @@ import static dev.cerios.maugame.mauengine.game.Stage.*;
 class GameCore {
 
     private final CardManager cardManager;
-    private final CardComparer cardComparer;
     private final PlayerManager playerManager;
 
     private final List<String> playerRank = new ArrayList<>(PlayerManager.MAX_PLAYERS);
@@ -46,20 +46,12 @@ class GameCore {
         List<Action> actions = new LinkedList<>();
 
         if (gameEffect == null) {
-            Card pileCard = cardManager.peekPile();
-            if (!cardComparer.compare(pileCard, card))
+            if (!cardManager.playCard(card, nextColor))
                 throw new PlayerMoveException("Illegal card to play");
-            cardComparer.clear();
             switch (card.type()) {
-                case QUEEN -> {
-                    if (nextColor == null)
-                        throw new PlayerMoveException("No next color specified, when played QUEEN.");
-                    cardComparer.setNextColor(nextColor);
-                }
                 case ACE -> gameEffect = new SkipEffect();
                 case SEVEN -> gameEffect = new DrawEffect(2);
             }
-            cardManager.playCard(card);
             actions.add(new PlayCardAction(playerId, card));
         } else {
             switch (gameEffect) {
@@ -67,13 +59,13 @@ class GameCore {
                     if (card.type() != CardType.SEVEN)
                         throw new PlayerMoveException("illegal card");
                     gameEffect = new DrawEffect(count + 2);
-                    cardManager.playCard(card);
+                    cardManager.playCard(card, null);
                     actions.add(new PlayCardAction(playerId, card));
                 }
                 case SkipEffect ignore -> {
                     if (card.type() != CardType.ACE)
                         throw new PlayerMoveException("illegal card");
-                    cardManager.playCard(card);
+                    cardManager.playCard(card, null);
                     actions.add(new PlayCardAction(playerId, card));
                 }
             }
@@ -166,7 +158,12 @@ class GameCore {
         playerManager.validateCanStart();
 
         for (Player player : playerManager.getPlayers()) {
-            var drawnCards = cardManager.draw(4);
+            List<Card> drawnCards;
+            try {
+                drawnCards = cardManager.draw(4);
+            } catch (CardException e) {
+                throw new IllegalStateException(e);
+            }
             player.getHand().addAll(drawnCards);
         }
 

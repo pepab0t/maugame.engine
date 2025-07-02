@@ -12,7 +12,7 @@ public class GameFactory {
 
     public Game createGame(Random random) {
         PlayerManager playerManager = new PlayerManager(random);
-        GameCore core = new GameCore(CardManager.create(random), new CardComparer(), playerManager);
+        GameCore core = new GameCore(CardManager.create(random, new CardComparer()), playerManager);
         return new Game(core, playerManager);
     }
 
