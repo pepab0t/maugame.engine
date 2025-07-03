@@ -1,22 +1,23 @@
 package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
-import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
 import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 import static dev.cerios.maugame.mauengine.game.PlayerIdGenerator.generatePlayerId;
-import static dev.cerios.maugame.mauengine.game.Stage.FINISH;
 
 class PlayerManager {
     public final int MAX_PLAYERS;
     public final int MIN_PLAYERS;
 
-    private final AtomicInteger currentPlayerIndex = new AtomicInteger(-2);
+    private final static int defaultPlayerIndex = -2;
+
+    private final AtomicInteger currentPlayerIndex = new AtomicInteger(defaultPlayerIndex);
     @Getter
     private int activeCounter = 0;
     private final Random random;
@@ -26,6 +27,7 @@ class PlayerManager {
 
     /**
      * initiates with maxPlayers = minPlayers = 2
+     *
      * @param random
      */
     public PlayerManager(Random random) {
@@ -59,10 +61,7 @@ class PlayerManager {
             );
 
         var player = new Player(generatePlayerId(), username, eventListener);
-        var action = new RegisterAction(player, false);
-        players.stream()
-                .filter(Player::isActive)
-                .forEach(p -> p.trigger(action));
+        distributeActionExcludingPlayer(new RegisterAction(player, false), player.getPlayerId());
         players.add(player);
         player.trigger(new RegisterAction(player, true));
         player.trigger(new PlayersAction(new ArrayList<>(players)));
@@ -70,9 +69,27 @@ class PlayerManager {
         return player;
     }
 
+    public void removePlayer(String playerId) throws GameException {
+        if (currentPlayerIndex.get() != defaultPlayerIndex) {
+            throw new IllegalStateException("Cannot remove player from initialized game.");
+        }
+
+        var removeIndex = IntStream.range(0, players.size())
+                .filter(index -> players.get(index).getPlayerId().equals(playerId))
+                .findFirst()
+                .orElseThrow(() -> new GameException("Player " + playerId + "not in game."));
+
+        var removedPlayer = players.remove(removeIndex);
+        if (removedPlayer.isActive()) {
+            activeCounter--;
+        }
+
+        distributeActionToAll(new RemovePlayerAction(removedPlayer));
+    }
+
     public Player currentPlayer() {
         var currentIndex = currentPlayerIndex.get();
-        if  (currentIndex == -2)
+        if (currentIndex == -2)
             throw new RuntimeException("Player manager has not been initialized yet.");
         return players.get(currentIndex % players.size());
     }
@@ -86,6 +103,7 @@ class PlayerManager {
 
     /**
      * Make player a winner and deactivates him.
+     *
      * @param player to transform to winner
      * @return whether game should continue
      */
@@ -113,7 +131,7 @@ class PlayerManager {
         player.disable();
 
         // if pm is initialized or at least 2 active players
-        if (currentPlayerIndex.get() < -1 || activeCounter > 1)
+        if (currentPlayerIndex.get() == defaultPlayerIndex || activeCounter > 1)
             return;
 
         if (activeCounter == 1) {

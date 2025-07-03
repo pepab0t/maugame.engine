@@ -18,6 +18,7 @@ public interface Action {
         LOSE,
         PLAYER_RANK,
         PLAYERS,
-        START_PILE;
+        START_PILE,
+        REMOVE_PLAYER;
     }
 }

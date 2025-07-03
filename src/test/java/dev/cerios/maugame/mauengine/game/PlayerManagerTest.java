@@ -486,4 +486,67 @@ class PlayerManagerTest {
         assertThat(pm.getActiveCounter()).isZero();
         assertThat(joseActions).containsExactly(new DeactivateAction(jose));
     }
+
+    @Test
+    void whenRemovePlayerFromInitialized_thenThrowUnchecked() throws GameException {
+        // setup
+        var jose = pm.registerPlayer("jose", VOID_LISTENER);
+        pm.registerPlayer("juan", VOID_LISTENER);
+        pm.initializePlayer();
+
+        // when, then
+        assertThatThrownBy(() -> pm.removePlayer(jose.getPlayerId()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void whenRemovePlayerThatIsNotInGame_thenThrow() throws GameException {
+        // setup
+        pm.registerPlayer("jose", VOID_LISTENER);
+        pm.registerPlayer("juan", VOID_LISTENER);
+
+        // when, then
+        assertThatThrownBy(() -> pm.removePlayer("non-existing-id"))
+                .isInstanceOf(GameException.class)
+                .hasMessageContaining("not", "in", "game", "non-existing-id");
+    }
+
+    @Test
+    void shouldRemoveActivePlayerFromLobby() throws GameException {
+        // setup
+        var actionCollector = createCollector();
+        var jose = pm.registerPlayer("jose", actionCollector.getListener());
+        var juan = pm.registerPlayer("juan", actionCollector.getListener());
+        actionCollector.clear();
+
+        // when
+        pm.removePlayer(jose.getPlayerId());
+
+        // then
+        assertThat(pm.getActiveCounter()).isOne();
+        assertThat(pm.getPlayers()).containsExactly(juan);
+        assertThat(pm.getPlayerRank()).isEmpty();
+        assertThat(actionCollector.getActions(juan)).containsExactly(new RemovePlayerAction(jose));
+        assertThat(actionCollector.getActions(jose)).isEmpty();
+    }
+
+    @Test
+    void shouldRemoveNonActivePlayerFromLobby() throws GameException {
+        // setup
+        var actionCollector = createCollector();
+        var jose = pm.registerPlayer("jose", actionCollector.getListener());
+        var juan = pm.registerPlayer("juan", actionCollector.getListener());
+        pm.deactivatePlayer(jose.getPlayerId());
+        actionCollector.clear();
+
+        // when
+        pm.removePlayer(jose.getPlayerId());
+
+        // then
+        assertThat(pm.getActiveCounter()).isOne();
+        assertThat(pm.getPlayers()).containsExactly(juan);
+        assertThat(pm.getPlayerRank()).isEmpty();
+        assertThat(actionCollector.getActions(juan)).containsExactly(new RemovePlayerAction(jose));
+        assertThat(actionCollector.getActions(jose)).isEmpty();
+    }
 }

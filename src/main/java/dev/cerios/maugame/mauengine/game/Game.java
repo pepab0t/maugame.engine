@@ -1,20 +1,17 @@
 package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.card.Card;
+import dev.cerios.maugame.mauengine.card.CardManager;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
-import dev.cerios.maugame.mauengine.exception.PlayerMoveException;
-import dev.cerios.maugame.mauengine.game.action.ActivateAction;
-import dev.cerios.maugame.mauengine.game.action.DeactivateAction;
-import dev.cerios.maugame.mauengine.game.action.PlayersAction;
 import dev.cerios.maugame.mauengine.game.action.StartAction;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static dev.cerios.maugame.mauengine.game.Stage.LOBBY;
@@ -28,8 +25,9 @@ public class Game {
     private final UUID uuid = UUID.randomUUID();
     private final GameCore core;
     private final PlayerManager playerManager;
+    private final CardManager cardManager;
 
-    public void playCardMove(final String playerId, Card cardToPlay ) throws MauEngineBaseException {
+    public void playCardMove(final String playerId, Card cardToPlay) throws MauEngineBaseException {
         core.performPlayCard(playerId, cardToPlay);
     }
 
@@ -37,8 +35,8 @@ public class Game {
         core.performPlayCard(playerId, cardToPlay, nextColor);
     }
 
-    public void playDrawMove(final String playerId, int count) throws MauEngineBaseException {
-        core.performDraw(playerId, count);
+    public void playDrawMove(final String playerId) throws MauEngineBaseException {
+        core.performDraw(playerId);
     }
 
     public void playPassMove(final String playerId) throws MauEngineBaseException {
@@ -53,7 +51,19 @@ public class Game {
     }
 
     public GameState getGameState() {
-        return core.getCurrentState();
+        return new GameState(
+                playerManager.getPlayerRank().stream().toList(),
+                playerManager.getPlayers().stream().collect(
+                        HashMap::new,
+                        (map, player) -> map.put(player.getUsername(), player.getHand()),
+                        HashMap::putAll
+                ),
+                cardManager.peekPile(),
+                cardManager.deckSize(),
+                core.getStage(),
+                playerManager.currentPlayer().getUsername(),
+                core.getGameEffect()
+        );
     }
 
     public int getFreeCapacity() {
