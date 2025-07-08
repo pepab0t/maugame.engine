@@ -6,6 +6,7 @@ import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.game.action.StartAction;
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ import java.util.UUID;
 import static dev.cerios.maugame.mauengine.game.Stage.LOBBY;
 
 
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Game {
     @Getter
@@ -71,8 +72,8 @@ public class Game {
     }
 
     public void start() throws MauEngineBaseException {
-        playerManager.distributeActionToAll(new StartAction(uuid.toString()));
         core.start();
+        playerManager.distributeActionToAll(new StartAction(uuid.toString()));
     }
 
     public void activatePlayer(String playerId) throws GameException {
@@ -80,6 +81,10 @@ public class Game {
     }
 
     public void deactivatePlayer(String playerId) throws GameException {
+        if (core.getStage() == LOBBY) {
+            playerManager.removePlayer(playerId);
+            return;
+        }
         playerManager.deactivatePlayer(playerId);
     }
 
@@ -87,7 +92,7 @@ public class Game {
         return core.getStage();
     }
 
-    public List<String> getAllPlayers() {
-        return playerManager.getPlayers().stream().map(Player::getPlayerId).toList();
+    public List<Player> getAllPlayers() {
+        return playerManager.getPlayers();
     }
 }
