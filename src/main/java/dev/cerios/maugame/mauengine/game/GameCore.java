@@ -15,7 +15,6 @@ import dev.cerios.maugame.mauengine.game.effect.SkipEffect;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,16 +27,10 @@ class GameCore {
     private final CardManager cardManager;
     private final PlayerManager playerManager;
 
-    private final List<String> playerRank;
+    @Getter
     private volatile GameEffect gameEffect = null;
     @Getter
     private volatile Stage stage = LOBBY;
-
-    public GameCore(CardManager cardManager, PlayerManager playerManager) {
-        this.cardManager = cardManager;
-        this.playerManager = playerManager;
-        this.playerRank = new ArrayList<>(playerManager.MAX_PLAYERS);
-    }
 
     public void performPlayCard(final String playerId, Card card) throws MauEngineBaseException {
         performPlayCard(playerId, card, null);
@@ -61,21 +54,23 @@ class GameCore {
                 case ACE -> gameEffect = new SkipEffect();
                 case SEVEN -> gameEffect = new DrawEffect(2);
             }
-            actions.add(new PlayCardAction(playerId, card));
+            actions.add(new PlayCardAction(player, card));
         } else {
             switch (gameEffect) {
                 case DrawEffect(int count) -> {
                     if (card.type() != CardType.SEVEN)
-                        throw new PlayerMoveException("illegal card");
+                        throw new PlayerMoveException("Illegal card to play.");
+                    if (!cardManager.playCard(card, null))
+                        throw new PlayerMoveException("Illegal card to play.");
                     gameEffect = new DrawEffect(count + 2);
-                    cardManager.playCard(card, null);
-                    actions.add(new PlayCardAction(playerId, card));
+                    actions.add(new PlayCardAction(player, card));
                 }
                 case SkipEffect ignore -> {
                     if (card.type() != CardType.ACE)
-                        throw new PlayerMoveException("illegal card");
-                    cardManager.playCard(card, null);
-                    actions.add(new PlayCardAction(playerId, card));
+                        throw new PlayerMoveException("Illegal card to play.");
+                    if (!cardManager.playCard(card, null))
+                        throw new PlayerMoveException("Illegal card to play.");
+                    actions.add(new PlayCardAction(player, card));
                 }
             }
         }
@@ -92,64 +87,42 @@ class GameCore {
         playerManager.shiftPlayer();
     }
 
-    public void performDraw(final String playerId, int cardCount) throws MauEngineBaseException {
+    public void performDraw(final String playerId) throws MauEngineBaseException {
         var player = playerManager.getPlayer(playerId);
         validatePlayerPlay(playerId);
 
-        if (cardCount != 1) {
-            throw new PlayerMoveException("illegal card draw count: " + cardCount);
-        }
-
         if (gameEffect != null)
-            throw new PlayerMoveException("cannot draw when when game effect is active");
+            throw new PlayerMoveException("Cannot draw when when game effect is active.");
 
         var drawnCard = cardManager.draw();
         player.getHand().add(drawnCard);
 
-        playerManager.distributeActionExcludingPlayer(new HiddenDrawAction(player, (byte) 1), playerId);
+        playerManager.distributeActionExcludingPlayer(new HiddenDrawAction(player, 1), playerId);
         player.trigger(new DrawAction(List.of(drawnCard)));
         playerManager.shiftPlayer();
     }
 
     public void performPass(final String playerId) throws MauEngineBaseException {
+        var player = playerManager.getPlayer(playerId);
         validatePlayerPlay(playerId);
 
-        if (gameEffect == null)
-            throw new PlayerMoveException("cannot pass without active game effect");
-
-        var player = playerManager.getPlayer(playerId);
         switch (gameEffect) {
             case DrawEffect(int count) -> {
                 var drawnCards = cardManager.draw(count);
                 player.getHand().addAll(drawnCards);
-
                 playerManager.distributeActionExcludingPlayer(
-                        new HiddenDrawAction(player, (byte) drawnCards.size()),
+                        new HiddenDrawAction(player, drawnCards.size()),
                         playerId
                 );
                 player.trigger(new DrawAction(drawnCards));
             }
             case SkipEffect ignore -> playerManager.distributeActionToAll(new PassAction(player));
+            case null -> throw new PlayerMoveException("cannot pass without active game effect");
         }
         gameEffect = null;
         playerManager.shiftPlayer();
     }
 
-    public GameState getCurrentState() {
-        return new GameState(
-                playerRank,
-                playerManager.getPlayers().stream().collect(
-                        HashMap::new,
-                        (map, player) -> map.put(player.getUsername(), player.getHand()),
-                        HashMap::putAll
-                ),
-                cardManager.peekPile(),
-                cardManager.deckSize(),
-                stage,
-                playerManager.currentPlayer().getUsername(),
-                gameEffect
-        );
-    }
 
     public void start() throws GameException {
         if (stage != LOBBY)
@@ -186,7 +159,7 @@ class GameCore {
             throw new GameException("The game not running.");
         }
         if (!playerId.equals(playerManager.currentPlayer().getPlayerId())) {
-            throw new PlayerMoveException(playerId);
+            throw new PlayerMoveException("Not " + playerId + "'s turn.");
         }
     }
 }

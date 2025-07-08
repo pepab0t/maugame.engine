@@ -5,10 +5,7 @@ import dev.cerios.maugame.mauengine.game.Player;
 import dev.cerios.maugame.mauengine.game.action.Action;
 import lombok.Getter;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TestUtils {
 
@@ -42,7 +39,7 @@ public class TestUtils {
         private ActionCollector() {}
 
         public List<Action> getActions(Player p) {
-            return actions.get(p);
+            return actions.getOrDefault(p, Collections.emptyList());
         }
 
         public void clear() {

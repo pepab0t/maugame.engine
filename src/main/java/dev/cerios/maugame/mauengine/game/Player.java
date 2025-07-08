@@ -24,7 +24,7 @@ public class Player {
     private final List<Card> hand = new ArrayList<>();
     private final GameEventListener eventListener;
 
-    public Player(String playerId, String username, GameEventListener eventListener) {
+    Player(String playerId, String username, GameEventListener eventListener) {
         this.playerId = playerId;
         this.eventListener = eventListener;
         this.username = username;
