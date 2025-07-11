@@ -34,10 +34,12 @@ class PlayerManager {
         this(random, 2, 2);
     }
 
-    public PlayerManager(Random random, int maxPlayers, int minPlayers) {
+    public PlayerManager(Random random, int minPlayers, int maxPlayers) {
+        if (minPlayers > maxPlayers)
+            throw new IllegalArgumentException("Min players must be less than max players.");
         this.random = random;
-        this.MAX_PLAYERS = maxPlayers;
         this.MIN_PLAYERS = minPlayers;
+        this.MAX_PLAYERS = maxPlayers;
         this.players = new ArrayList<>(MAX_PLAYERS);
         this.playerRank = new LinkedHashSet<>(MAX_PLAYERS);
         this.closeListeners = new LinkedList<>();
@@ -61,8 +63,8 @@ class PlayerManager {
             );
 
         var player = new Player(generatePlayerId(), username, eventListener);
-        distributeActionExcludingPlayer(new RegisterAction(player, false), player.getPlayerId());
         players.add(player);
+        distributeActionExcludingPlayer(new RegisterAction(player, false), player.getPlayerId());
         player.trigger(new RegisterAction(player, true));
         player.trigger(new PlayersAction(new ArrayList<>(players)));
         activeCounter++;

@@ -10,14 +10,18 @@ import java.util.Random;
 public class GameFactory {
     private final Random random;
 
-    public Game createGame(Random random) {
-        PlayerManager playerManager = new PlayerManager(random);
+    public Game createGame(Random random, int minPlayers, int maxPlayers) {
+        PlayerManager playerManager = new PlayerManager(random, minPlayers, maxPlayers);
         var cardManager = CardManager.create(random, new CardComparer());
         GameCore core = new GameCore(cardManager, playerManager);
         return new Game(core, playerManager, cardManager);
     }
 
+    public Game createGame(int minPlayers, int maxPlayers) {
+        return createGame(random, minPlayers, maxPlayers);
+    }
+
     public Game createGame() {
-        return this.createGame(random);
+        return this.createGame(random, 2, 2);
     }
 }

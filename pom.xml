@@ -10,7 +10,7 @@
     </parent>
     <groupId>dev.cerios.maugame</groupId>
     <artifactId>game-engine</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>game-engine</name>
     <description>Demo project for Spring Boot</description>
     <url/>
