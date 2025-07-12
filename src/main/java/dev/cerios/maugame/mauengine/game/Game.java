@@ -51,6 +51,10 @@ public class Game {
         return playerManager.registerPlayer(username, eventListener);
     }
 
+    public void removePlayer(String playerId) throws GameException {
+        playerManager.removePlayer(playerId);
+    }
+
     public GameState getGameState() {
         return new GameState(
                 playerManager.getPlayerRank().stream().toList(),
