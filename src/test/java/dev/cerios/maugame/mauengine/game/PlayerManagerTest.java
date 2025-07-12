@@ -187,8 +187,8 @@ class PlayerManagerTest {
         assertThat(pm.getActiveCounter()).isEqualTo(2);
         assertThat(player1.isActive()).isTrue();
         assertThat(player2.isActive()).isTrue();
-        assertThat(playerActions1).containsExactly(new ActivateAction(player1.getPlayerId()));
-        assertThat(playerActions2).containsExactly(new ActivateAction(player1.getPlayerId()));
+        assertThat(playerActions1).containsExactly(new ActivateAction(player1));
+        assertThat(playerActions2).containsExactly(new ActivateAction(player1));
     }
 
     @Test

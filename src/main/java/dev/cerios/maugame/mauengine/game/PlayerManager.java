@@ -152,7 +152,7 @@ class PlayerManager {
             return;
         player.enable();
         activeCounter++;
-        distributeActionToAll(new ActivateAction(playerId));
+        distributeActionToAll(new ActivateAction(player));
     }
 
     public void validateCanStart() throws GameException {
