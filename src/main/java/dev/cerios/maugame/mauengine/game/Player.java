@@ -8,7 +8,6 @@ import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 @ToString(onlyExplicitlyIncluded = true)
 public class Player {
@@ -20,7 +19,7 @@ public class Player {
     @Getter
     @ToString.Include
     private boolean active = true;
-    @Getter
+    @Getter(AccessLevel.PACKAGE)
     private final List<Card> hand = new ArrayList<>();
     private final GameEventListener eventListener;
 
