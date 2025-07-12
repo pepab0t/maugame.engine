@@ -11,7 +11,7 @@ public interface Action {
         DRAW,
         HIDDEN_DRAW,
         PASS,
-        PLAYER_CHANGE,
+        PLAYER_SHIFT,
         START_GAME,
         END_GAME,
         WIN,
