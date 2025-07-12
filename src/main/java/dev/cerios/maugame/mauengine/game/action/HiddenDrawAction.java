@@ -8,7 +8,7 @@ public record HiddenDrawAction(
 ) implements Action {
 
     @Override
-    public ActionType type() {
+    public ActionType getType() {
         return ActionType.HIDDEN_DRAW;
     }
 }

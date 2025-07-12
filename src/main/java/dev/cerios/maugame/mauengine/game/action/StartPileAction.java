@@ -5,7 +5,7 @@ import dev.cerios.maugame.mauengine.card.Card;
 public record StartPileAction(Card card) implements Action {
 
     @Override
-    public ActionType type() {
+    public ActionType getType() {
         return ActionType.START_PILE;
     }
 }

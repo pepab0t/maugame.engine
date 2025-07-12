@@ -7,7 +7,7 @@ import java.util.List;
 public record PlayersAction(List<Player> players) implements Action {
 
     @Override
-    public ActionType type() {
+    public ActionType getType() {
         return ActionType.PLAYERS;
     }
 }

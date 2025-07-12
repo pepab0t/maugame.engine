@@ -5,7 +5,7 @@ import dev.cerios.maugame.mauengine.game.Player;
 
 public record PlayCardAction(Player player, Card card) implements Action {
     @Override
-    public ActionType type() {
+    public ActionType getType() {
         return ActionType.PLAY_CARD;
     }
 }

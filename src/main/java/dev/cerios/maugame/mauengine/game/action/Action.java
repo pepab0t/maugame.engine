@@ -1,7 +1,7 @@
 package dev.cerios.maugame.mauengine.game.action;
 
 public interface Action {
-    ActionType type();
+    ActionType getType();
 
     enum ActionType {
         REGISTER_PLAYER,

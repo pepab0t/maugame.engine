@@ -6,7 +6,7 @@ import java.util.List;
 
 public record DrawAction(List<Card> cardsDrawn) implements Action {
     @Override
-    public ActionType type() {
+    public ActionType getType() {
         return ActionType.DRAW;
     }
 }
