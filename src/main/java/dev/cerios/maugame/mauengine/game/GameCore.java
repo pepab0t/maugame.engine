@@ -124,7 +124,7 @@ class GameCore {
     }
 
 
-    public void start() throws GameException {
+    public Card start() throws GameException {
         if (stage != LOBBY)
             throw new GameException("The game has already started.");
 
@@ -139,19 +139,8 @@ class GameCore {
             }
             player.getHand().addAll(drawnCards);
         }
-
         stage = RUNNING;
-
-        playerManager.distributeActionToAll(new StartPileAction(cardManager.startPile()));
-        playerManager.initializePlayer();
-
-        for (Player player : playerManager.getPlayers()) {
-            player.trigger(new DrawAction(player.getHand()));
-            playerManager.distributeActionExcludingPlayer(
-                    new HiddenDrawAction(player, (byte) player.getHand().size()),
-                    player.getPlayerId()
-            );
-        }
+        return cardManager.startPile();
     }
 
     private void validatePlayerPlay(String playerId) throws MauEngineBaseException {
@@ -161,5 +150,13 @@ class GameCore {
         if (!playerId.equals(playerManager.currentPlayer().getPlayerId())) {
             throw new PlayerMoveException("Not " + playerId + "'s turn.");
         }
+    }
+
+    public int getDeckSize() {
+        return cardManager.deckSize();
+    }
+
+    public Card getPileCard() {
+        return cardManager.peekPile();
     }
 }

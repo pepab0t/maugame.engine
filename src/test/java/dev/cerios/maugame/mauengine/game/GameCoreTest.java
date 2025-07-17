@@ -44,9 +44,8 @@ class GameCoreTest {
     @Test
     void shouldStartCorrectly() throws GameException, CardException {
         // setup
-        var collector = createCollector();
-        var joe = new Player("1", "joe", collector.getListener());
-        var juan = new Player("2", "juan", collector.getListener());
+        var joe = new Player("1", "joe", VOID_LISTENER);
+        var juan = new Player("2", "juan", VOID_LISTENER);
         doNothing().when(playerManager).validateCanStart();
         var joeCardsExpected = List.of(
                 new Card(SEVEN, SPADES),
@@ -65,17 +64,14 @@ class GameCoreTest {
         when(playerManager.getPlayers()).thenReturn(List.of(joe, juan));
 
         // when
-        gameCore.start();
+        var pileCard = gameCore.start();
 
         // then
+        assertThat(pileCard).isEqualTo(new Card(KING, SPADES));
         verify(cardManager, times(2)).draw(4);
         verify(cardManager).startPile();
         assertThat(joe.getHand()).containsExactlyElementsOf(joeCardsExpected);
         assertThat(juan.getHand()).containsExactlyElementsOf(juanCardsExpected);
-        assertThat(collector.getActions(joe)).containsExactly(new DrawAction(joeCardsExpected));
-        assertThat(collector.getActions(juan)).containsExactly(new DrawAction(juanCardsExpected));
-        verify(playerManager).distributeActionExcludingPlayer(new HiddenDrawAction(joe, 4), joe.getPlayerId());
-        verify(playerManager).distributeActionExcludingPlayer(new HiddenDrawAction(juan, 4), juan.getPlayerId());
         assertThat(gameCore.getStage()).isEqualTo(RUNNING);
     }
 

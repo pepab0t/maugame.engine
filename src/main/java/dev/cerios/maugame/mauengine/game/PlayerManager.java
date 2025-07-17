@@ -132,7 +132,7 @@ class PlayerManager {
         activeCounter--;
         player.disable();
 
-        // if pm is initialized or at least 2 active players
+        // if pm is not initialized or at least 2 active players
         if (currentPlayerIndex.get() == defaultPlayerIndex || activeCounter > 1)
             return;
 

@@ -14,7 +14,7 @@ public class GameFactory {
         PlayerManager playerManager = new PlayerManager(random, minPlayers, maxPlayers);
         var cardManager = CardManager.create(random, new CardComparer());
         GameCore core = new GameCore(cardManager, playerManager);
-        return new Game(core, playerManager, cardManager);
+        return new Game(core, playerManager);
     }
 
     public Game createGame(int minPlayers, int maxPlayers) {

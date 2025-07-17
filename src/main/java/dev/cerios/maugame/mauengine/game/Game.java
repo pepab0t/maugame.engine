@@ -5,7 +5,10 @@ import dev.cerios.maugame.mauengine.card.CardManager;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
+import dev.cerios.maugame.mauengine.game.action.DrawAction;
+import dev.cerios.maugame.mauengine.game.action.HiddenDrawAction;
 import dev.cerios.maugame.mauengine.game.action.StartAction;
+import dev.cerios.maugame.mauengine.game.action.StartPileAction;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -28,7 +31,6 @@ public class Game {
     private final UUID uuid = UUID.randomUUID();
     private final GameCore core;
     private final PlayerManager playerManager;
-    private final CardManager cardManager;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public void playCardMove(final String playerId, Card cardToPlay) throws MauEngineBaseException {
@@ -105,8 +107,8 @@ public class Game {
                             (map, player) -> map.put(player.getUsername(), player.getHand()),
                             HashMap::putAll
                     ),
-                    cardManager.peekPile(),
-                    cardManager.deckSize(),
+                    core.getPileCard(),
+                    core.getDeckSize(),
                     core.getStage(),
                     playerManager.currentPlayer().getUsername(),
                     core.getGameEffect()
@@ -130,8 +132,19 @@ public class Game {
         var l = lock.writeLock();
         try {
             l.lock();
-            core.start();
+            var pileCard = core.start();
+
             playerManager.distributeActionToAll(new StartAction(uuid.toString()));
+            playerManager.distributeActionToAll(new StartPileAction(pileCard));
+            playerManager.initializePlayer();
+
+            for (Player player : playerManager.getPlayers()) {
+                player.trigger(new DrawAction(player.getHand()));
+                playerManager.distributeActionExcludingPlayer(
+                        new HiddenDrawAction(player, (byte) player.getHand().size()),
+                        player.getPlayerId()
+                );
+            }
         } finally {
             l.unlock();
         }
