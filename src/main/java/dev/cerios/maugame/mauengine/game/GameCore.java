@@ -54,7 +54,7 @@ class GameCore {
                 case ACE -> gameEffect = new SkipEffect();
                 case SEVEN -> gameEffect = new DrawEffect(2);
             }
-            actions.add(new PlayCardAction(player, card));
+            actions.add(new PlayCardAction(player, card, nextColor));
         } else {
             switch (gameEffect) {
                 case DrawEffect(int count) -> {
