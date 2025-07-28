@@ -140,7 +140,6 @@ class PlayerManager {
             playerWin(findNextPlayer());
             distributeActionToAll(new EndAction());
         }
-        // send end notification
         for (var closeListener : closeListeners) {
             closeListener.run();
         }

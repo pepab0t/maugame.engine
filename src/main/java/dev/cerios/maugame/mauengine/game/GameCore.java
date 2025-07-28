@@ -13,15 +13,12 @@ import dev.cerios.maugame.mauengine.game.effect.DrawEffect;
 import dev.cerios.maugame.mauengine.game.effect.GameEffect;
 import dev.cerios.maugame.mauengine.game.effect.SkipEffect;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 import static dev.cerios.maugame.mauengine.game.Stage.*;
 
-@RequiredArgsConstructor
 class GameCore {
 
     private final CardManager cardManager;
@@ -31,6 +28,12 @@ class GameCore {
     private volatile GameEffect gameEffect = null;
     @Getter
     private volatile Stage stage = LOBBY;
+
+    public GameCore(CardManager cardManager, PlayerManager playerManager) {
+        this.cardManager = cardManager;
+        this.playerManager = playerManager;
+        playerManager.listenClose(() -> stage = FINISH);
+    }
 
     public void performPlayCard(final String playerId, Card card) throws MauEngineBaseException {
         performPlayCard(playerId, card, null);
