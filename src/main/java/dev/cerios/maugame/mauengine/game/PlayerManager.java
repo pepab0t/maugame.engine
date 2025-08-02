@@ -62,6 +62,9 @@ class PlayerManager {
                     )
             );
 
+        if (players.stream().anyMatch(player -> player.getUsername().equals(username)))
+            throw new GameException(String.format("Player %s is already registered.", username));
+
         var player = new Player(generatePlayerId(), username, eventListener);
         players.add(player);
         distributeActionExcludingPlayer(new RegisterAction(player, false), player.getPlayerId());

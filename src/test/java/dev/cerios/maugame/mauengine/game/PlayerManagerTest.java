@@ -47,6 +47,18 @@ class PlayerManagerTest {
     }
 
     @Test
+    void whenRegisterPlayerWithNonUniqueUsername_thenThrow() throws GameException {
+        // setup
+        final String nonUniqueName = "john";
+        pm.registerPlayer(nonUniqueName, VOID_LISTENER);
+
+        // when, then
+        assertThatThrownBy(() -> pm.registerPlayer(nonUniqueName, VOID_LISTENER))
+                .isInstanceOf(GameException.class)
+                .hasMessageContainingAll(nonUniqueName, "already", "registered");
+    }
+
+    @Test
     void whenRegisterPlayer_otherPlayersShouldGetNotified() throws Exception {
         // setup
         Map<String, List<Action>> actions = new HashMap<>();
