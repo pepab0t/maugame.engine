@@ -77,6 +77,8 @@ class GameCore {
                 }
             }
         }
+        actions.forEach(playerManager::distributeActionToAll);
+
         playerHand.remove(cardIndex);
         if (playerHand.isEmpty()) {
             var shouldContinue = playerManager.playerWin(player);
@@ -85,8 +87,6 @@ class GameCore {
                 return;
             }
         }
-
-        actions.forEach(playerManager::distributeActionToAll);
         playerManager.shiftPlayer();
     }
 

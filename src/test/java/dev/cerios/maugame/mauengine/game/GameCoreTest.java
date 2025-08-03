@@ -465,7 +465,7 @@ class GameCoreTest {
         // then
         assertThat(jose.getHand()).isEmpty();
         assertThat(gameCore.getStage()).isSameAs(FINISH);
-        verify(playerManager, never()).distributeActionToAll(any(Action.class));
+        verify(playerManager).distributeActionToAll(any(PlayCardAction.class));
         verify(playerManager, never()).shiftPlayer();
     }
 
