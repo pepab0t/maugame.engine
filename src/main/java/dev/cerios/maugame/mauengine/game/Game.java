@@ -174,6 +174,16 @@ public class Game {
         }
     }
 
+    public Player getPlayer(String playerId) throws GameException {
+        var l = lock.readLock();
+        try {
+            l.lock();
+            return playerManager.getPlayer(playerId);
+        } finally {
+            l.unlock();
+        }
+    }
+
     public Stage getStage() {
         var l = lock.readLock();
         try {
