@@ -19,6 +19,7 @@ public interface Action {
         PLAYER_RANK,
         PLAYERS,
         START_PILE,
-        REMOVE_PLAYER;
+        REMOVE_PLAYER,
+        DISQUALIFIED;
     }
 }

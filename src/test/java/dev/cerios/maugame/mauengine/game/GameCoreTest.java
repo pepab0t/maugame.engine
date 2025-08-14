@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import static dev.cerios.maugame.mauengine.TestUtils.*;
 import static dev.cerios.maugame.mauengine.card.CardType.*;
@@ -28,17 +30,18 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class GameCoreTest {
     private final static String GAME_EFFECT_FIELD = "gameEffect";
-    private final static String STAGE_FIELD = "stage";
 
     private GameCore gameCore;
     @Mock
     private PlayerManager playerManager;
     @Mock
     private CardManager cardManager;
+    private AtomicReference<Stage> stage;
 
     @BeforeEach
     void setUp() {
-        this.gameCore = new GameCore(cardManager, playerManager);
+        this.stage = new AtomicReference<>(LOBBY);
+        this.gameCore = new GameCore(cardManager, playerManager, stage);
     }
 
     @Test
@@ -59,7 +62,9 @@ class GameCoreTest {
                 new Card(NINE, HEARTS),
                 new Card(TEN, HEARTS)
         );
-        when(cardManager.draw(4)).thenReturn(joeCardsExpected, juanCardsExpected);
+        when(cardManager.draw(4))
+                .thenReturn(joeCardsExpected)
+                .thenReturn(juanCardsExpected);
         when(cardManager.startPile()).thenReturn(new Card(KING, SPADES));
         when(playerManager.getPlayers()).thenReturn(List.of(joe, juan));
 
@@ -98,7 +103,7 @@ class GameCoreTest {
     @Test
     void whenGameStartedInNotLobbyMode_thenThrow() throws Exception {
         // setup
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
 
         // when, then
         assertThatThrownBy(() -> gameCore.start())
@@ -109,13 +114,12 @@ class GameCoreTest {
     void whenPerformPass_andPlayerNotInGame_thenThrow() throws Exception {
         // setup
         final String playerId = "1";
-        var exception = new GameException();
-        when(playerManager.getPlayer(playerId)).thenThrow(exception);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        when(playerManager.currentPlayer()).thenReturn(new Player("2", "juan", VOID_LISTENER));
+        stage.set(RUNNING);
 
         // when
         assertThatThrownBy(() -> gameCore.performPass(playerId))
-                .isSameAs(exception);
+                .isInstanceOf(PlayerMoveException.class);
     }
 
     @Test
@@ -123,9 +127,8 @@ class GameCoreTest {
         // setup
         final var jose = new Player("1", "jose", VOID_LISTENER);
         final var currentPlayer = new Player("2", "juan", VOID_LISTENER);
-        when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(currentPlayer);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
 
         // when, then
         assertThatThrownBy(() -> gameCore.performPass(jose.getPlayerId()))
@@ -137,8 +140,6 @@ class GameCoreTest {
     void whenPerformPass_andGameNotRunning_thenThrow() throws Exception {
         // setup
         final var jose = new Player("1", "jose", VOID_LISTENER);
-        when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, LOBBY);
 
         // when, then
         assertThatThrownBy(() -> gameCore.performPass(jose.getPlayerId()))
@@ -152,7 +153,7 @@ class GameCoreTest {
         final var jose = new Player("1", "jose", VOID_LISTENER);
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, null);
 
         // when, then
@@ -166,7 +167,7 @@ class GameCoreTest {
         final var jose = new Player("1", "jose", VOID_LISTENER);
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, new SkipEffect());
 
         // when
@@ -186,7 +187,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.draw(2)).thenReturn(List.of(new Card(SEVEN, CLUBS), new Card(EIGHT, CLUBS)));
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, new DrawEffect(2));
 
         // when
@@ -205,9 +206,8 @@ class GameCoreTest {
         // setup
         final var jose = new Player("1", "jose", VOID_LISTENER);
         final var currentPlayer = new Player("2", "juan", VOID_LISTENER);
-        when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(currentPlayer);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
 
         // when, then
         assertThatThrownBy(() -> gameCore.performDraw(jose.getPlayerId()))
@@ -219,21 +219,19 @@ class GameCoreTest {
     void whenPerformDraw_andPlayerNotInGame_thenThrow() throws Exception {
         // setup
         final String playerId = "1";
-        var exception = new GameException();
-        when(playerManager.getPlayer(playerId)).thenThrow(exception);
-    setField(gameCore, STAGE_FIELD, RUNNING);
+        when(playerManager.currentPlayer()).thenReturn(new Player("2", "juan", VOID_LISTENER));
+        stage.set(RUNNING);
 
         // when
         assertThatThrownBy(() -> gameCore.performDraw(playerId))
-                .isSameAs(exception);
+                .isInstanceOf(PlayerMoveException.class)
+                .hasMessageMatching(Pattern.compile(".*not \\w+'s turn.*", Pattern.CASE_INSENSITIVE));
     }
 
     @Test
     void whenPerformDraw_andGameNotRunning_thenThrow() throws Exception {
         // setup
         final var jose = new Player("1", "jose", VOID_LISTENER);
-        when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, LOBBY);
 
         // when, then
         assertThatThrownBy(() -> gameCore.performDraw(jose.getPlayerId()))
@@ -248,7 +246,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         setField(gameCore, GAME_EFFECT_FIELD, new SkipEffect());
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
 
         // when, then
         assertThatThrownBy(() -> gameCore.performDraw(jose.getPlayerId()))
@@ -264,7 +262,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.draw()).thenReturn(new Card(SEVEN, CLUBS));
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
 
         // when
         gameCore.performDraw(jose.getPlayerId());
@@ -280,9 +278,8 @@ class GameCoreTest {
         // setup
         final var jose = new Player("1", "jose", VOID_LISTENER);
         final var currentPlayer = new Player("2", "juan", VOID_LISTENER);
-        when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(currentPlayer);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
 
         // when, then
         assertThatThrownBy(() -> gameCore.performPlayCard(jose.getPlayerId(), new Card(ACE, HEARTS)))
@@ -294,21 +291,18 @@ class GameCoreTest {
     void whenPerformPlayCard_andPlayerNotInGame_thenThrow() throws Exception {
         // setup
         final String playerId = "1";
-        var exception = new GameException();
-        when(playerManager.getPlayer(playerId)).thenThrow(exception);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        when(playerManager.currentPlayer()).thenReturn(new Player("2", "juan", VOID_LISTENER));
+        stage.set(RUNNING);
 
         // when
         assertThatThrownBy(() -> gameCore.performPlayCard(playerId, new Card(ACE, HEARTS)))
-                .isSameAs(exception);
+                .isInstanceOf(PlayerMoveException.class);
     }
 
     @Test
     void whenPerformPlayCard_andGameNotRunning_thenThrow() throws Exception {
         // setup
         final var jose = new Player("1", "jose", VOID_LISTENER);
-        when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, LOBBY);
 
         // when, then
         assertThatThrownBy(() -> gameCore.performPlayCard(jose.getPlayerId(), new Card(ACE, HEARTS)))
@@ -323,7 +317,7 @@ class GameCoreTest {
         jose.getHand().add(new Card(SEVEN, CLUBS));
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
 
         // when
         assertThatThrownBy(() -> gameCore.performPlayCard(jose.getPlayerId(), new Card(ACE, HEARTS)))
@@ -341,7 +335,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(noEffectCard, null)).thenReturn(true);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, null);
 
         // when
@@ -363,7 +357,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(noEffectCard, null)).thenReturn(false);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, null);
 
         // when, then
@@ -385,7 +379,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(drawEffectCard, null)).thenReturn(true);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, null);
 
         // when
@@ -409,7 +403,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(drawEffectCard, null)).thenReturn(true);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, null);
 
         // when
@@ -433,7 +427,7 @@ class GameCoreTest {
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(lastCard, null)).thenReturn(true);
         when(playerManager.playerWin(jose)).thenReturn(true);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, null);
 
         // when
@@ -456,7 +450,7 @@ class GameCoreTest {
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(lastCard, null)).thenReturn(true);
         when(playerManager.playerWin(jose)).thenReturn(false);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, null);
 
         // when
@@ -464,7 +458,6 @@ class GameCoreTest {
 
         // then
         assertThat(jose.getHand()).isEmpty();
-        assertThat(gameCore.getStage()).isSameAs(FINISH);
         verify(playerManager).distributeActionToAll(any(PlayCardAction.class));
         verify(playerManager, never()).shiftPlayer();
     }
@@ -479,7 +472,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(effectCard, null)).thenReturn(true);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, new DrawEffect(2));
 
         // when
@@ -502,7 +495,7 @@ class GameCoreTest {
         jose.getHand().addAll(List.of(playCard, anotherCard));
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, new DrawEffect(2));
 
         // when, then
@@ -523,7 +516,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(playCard, null)).thenReturn(false); // invalid from here
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         setField(gameCore, GAME_EFFECT_FIELD, new DrawEffect(2));
 
         // when, then
@@ -544,7 +537,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(effectCard, null)).thenReturn(true);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         var skipEffect = new SkipEffect();
         setField(gameCore, GAME_EFFECT_FIELD, skipEffect);
 
@@ -568,7 +561,7 @@ class GameCoreTest {
         jose.getHand().addAll(List.of(playCard, anotherCard));
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         var skipEffect = new SkipEffect();
         setField(gameCore, GAME_EFFECT_FIELD, skipEffect);
 
@@ -590,7 +583,7 @@ class GameCoreTest {
         when(playerManager.getPlayer(jose.getPlayerId())).thenReturn(jose);
         when(playerManager.currentPlayer()).thenReturn(jose);
         when(cardManager.playCard(playCard, null)).thenReturn(false); // invalid from here
-        setField(gameCore, STAGE_FIELD, RUNNING);
+        stage.set(RUNNING);
         var skipEffect = new SkipEffect();
         setField(gameCore, GAME_EFFECT_FIELD, skipEffect);
 

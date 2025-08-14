@@ -1,5 +1,9 @@
 package dev.cerios.maugame.mauengine.game;
 
+import dev.cerios.maugame.mauengine.card.Card;
+import dev.cerios.maugame.mauengine.card.CardManager;
+import dev.cerios.maugame.mauengine.card.CardType;
+import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.action.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,25 +13,33 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static dev.cerios.maugame.mauengine.TestUtils.*;
-import static java.util.List.*;
+import static dev.cerios.maugame.mauengine.game.Stage.LOBBY;
+import static dev.cerios.maugame.mauengine.game.Stage.RUNNING;
+import static java.util.List.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PlayerManagerTest {
 
     private PlayerManager pm;
+    private AtomicReference<Stage> stage;
     @Mock
     private Random random;
+    @Mock
+    private CardManager cardManager;
 
     @BeforeEach
     void setUp() {
-        pm = new PlayerManager(random, 2, 2);
+        stage = new AtomicReference<>(LOBBY);
+        pm = new PlayerManager(random, 2, 2, Executors.newVirtualThreadPerTaskExecutor(), stage, cardManager);
     }
 
     @Test
@@ -41,8 +53,8 @@ class PlayerManagerTest {
 
         // then
         assertThat(pm.getPlayers()).containsExactly(registered);
-        assertThat((int) getField(pm, "activeCounter")).isOne();
-        assertThat(registered.isActive()).isTrue();
+        assertThat(pm.getActiveCounter()).isOne();
+        assertThat(registered.isFinished()).isFalse();
         assertThat(events).containsExactly(new RegisterAction(registered, true), new PlayersAction(of(registered)));
     }
 
@@ -74,7 +86,7 @@ class PlayerManagerTest {
 
         // then
         assertThat(pm.getPlayers()).containsExactly(alreadyRegistered, registered);
-        assertThat((int) getField(pm, "activeCounter")).isEqualTo(2);
+        assertThat(pm.getActiveCounter()).isEqualTo(2);
         assertThat(actions.get(alreadyRegistered.getPlayerId())).containsExactly(
                 new RegisterAction(alreadyRegistered, true),
                 new PlayersAction(of(alreadyRegistered)), new RegisterAction(registered, false)
@@ -141,90 +153,6 @@ class PlayerManagerTest {
     }
 
     @Test
-    void shouldDeactivatePlayerAndNotifyAllPlayers() throws GameException {
-        // when
-        var playerActions1 = new LinkedList<Action>();
-        var playerActions2 = new LinkedList<Action>();
-        var player1 = pm.registerPlayer("joe", (p, e) -> playerActions1.add(e));
-        var player2 = pm.registerPlayer("juan", (p, e) -> playerActions2.add(e));
-
-        // when
-        pm.deactivatePlayer(player1.getPlayerId());
-
-        // then
-        assertThat(pm.getActiveCounter()).isEqualTo((byte) 1);
-        assertThat(player1.isActive()).isFalse();
-        assertThat(player2.isActive()).isTrue();
-        assertThat(playerActions1).last().isEqualTo(new DeactivateAction(player1));
-        assertThat(playerActions2).last().isEqualTo(new DeactivateAction(player1));
-    }
-
-    @Test
-    void whenDeactivateDeactivatedPlayer_thenIgnore() throws Exception {
-        // setup
-        var playerActions1 = new LinkedList<Action>();
-        var playerActions2 = new LinkedList<Action>();
-        var player1 = pm.registerPlayer("joe", (p, e) -> playerActions1.add(e));
-        var player2 = pm.registerPlayer("juan", (p, e) -> playerActions2.add(e));
-        pm.deactivatePlayer(player1.getPlayerId());
-        playerActions1.clear();
-        playerActions2.clear();
-
-        // when
-        pm.deactivatePlayer(player1.getPlayerId());
-
-        // then
-        assertThat(pm.getActiveCounter()).isEqualTo(1);
-        assertThat(player1.isActive()).isFalse();
-        assertThat(player2.isActive()).isTrue();
-        assertThat(playerActions1).isEmpty();
-        assertThat(playerActions2).isEmpty();
-    }
-
-    @Test
-    void shouldActivateDeactivatedPlayer() throws Exception {
-        // setup
-        var playerActions1 = new LinkedList<Action>();
-        var playerActions2 = new LinkedList<Action>();
-        var player1 = pm.registerPlayer("joe", (p, e) -> playerActions1.add(e));
-        var player2 = pm.registerPlayer("juan", (p, e) -> playerActions2.add(e));
-        pm.deactivatePlayer(player1.getPlayerId());
-        playerActions1.clear();
-        playerActions2.clear();
-
-        // when
-        pm.activatePlayer(player1.getPlayerId());
-
-        // then
-        assertThat(pm.getActiveCounter()).isEqualTo(2);
-        assertThat(player1.isActive()).isTrue();
-        assertThat(player2.isActive()).isTrue();
-        assertThat(playerActions1).containsExactly(new ActivateAction(player1));
-        assertThat(playerActions2).containsExactly(new ActivateAction(player1));
-    }
-
-    @Test
-    void whenActivateActivatedPlayer_thenIgnore() throws GameException {
-        // setup
-        var playerActions1 = new LinkedList<Action>();
-        var playerActions2 = new LinkedList<Action>();
-        var player1 = pm.registerPlayer("joe", (p, e) -> playerActions1.add(e));
-        var player2 = pm.registerPlayer("juan", (p, e) -> playerActions2.add(e));
-        playerActions1.clear();
-        playerActions2.clear();
-
-        // when
-        pm.activatePlayer(player1.getPlayerId());
-
-        // then
-        assertThat(pm.getActiveCounter()).isEqualTo(2);
-        assertThat(player1.isActive()).isTrue();
-        assertThat(player2.isActive()).isTrue();
-        assertThat(playerActions1).isEmpty();
-        assertThat(playerActions2).isEmpty();
-    }
-
-    @Test
     void shouldDistributeActionToAll() throws Exception {
         // setup
         Action fooAction = () -> null;
@@ -288,15 +216,15 @@ class PlayerManagerTest {
         var result = pm.playerWin(winner);
 
         // then
-        var expectedActions = of(new WinAction(winner), new SendRankAction(new LinkedHashSet<>(of("joe"))));
+        var expectedActions = of(new SendRankAction(new LinkedList<>(of("joe"))));
         assertThat(result).isTrue();
         assertThat(collector.getActions(winner)).containsExactlyElementsOf(expectedActions);
         assertThat(collector.getActions(player1)).containsExactlyElementsOf(expectedActions);
         assertThat(collector.getActions(player2)).containsExactlyElementsOf(expectedActions);
         assertThat(pm.getActiveCounter()).isEqualTo(2);
-        assertThat(player1.isActive()).isTrue();
-        assertThat(player2.isActive()).isTrue();
-        assertThat(winner.isActive()).isFalse();
+        assertThat(player1.isFinished()).isFalse();
+        assertThat(player2.isFinished()).isFalse();
+        assertThat(winner.isFinished()).isTrue();
     }
 
     @Test
@@ -315,42 +243,39 @@ class PlayerManagerTest {
         // then
         assertThat(result).isFalse();
         assertThat(collector.getActions(winner)).containsExactly(
-                new WinAction(winner),
-                new SendRankAction(new LinkedHashSet<>(of("joe", "juan"))),
-                new EndAction()
+                new EndAction(new LinkedList<>(of("joe", "juan")))
         );
         assertThat(collector.getActions(loser)).containsExactly(
-                new WinAction(winner),
-                new LoseAction(loser),
-                new SendRankAction(new LinkedHashSet<>(of("joe", "juan"))),
-                new EndAction()
+                new EndAction(new LinkedList<>(of("joe", "juan")))
         );
         assertThat(pm.getActiveCounter()).isEqualTo(0);
-        assertThat(loser.isActive()).isFalse();
-        assertThat(winner.isActive()).isFalse();
+        assertThat(loser.isFinished()).isTrue();
+        assertThat(winner.isFinished()).isTrue();
     }
 
     @Test
-    void whenShiftPlayerAndNoOneActive_thenThrowUnchecked() throws GameException {
+    void whenShiftPlayerAndNoOnePlaying_thenThrowUnchecked() throws GameException {
         // setup
         var joe = pm.registerPlayer("joe", VOID_LISTENER);
         var juan = pm.registerPlayer("juan", VOID_LISTENER);
-        pm.deactivatePlayer(joe.getPlayerId());
-        pm.deactivatePlayer(juan.getPlayerId());
+        pm.removePlayer(joe.getPlayerId());
+        pm.removePlayer(juan.getPlayerId());
 
         // when, then
         assertThatThrownBy(() -> pm.shiftPlayer()).isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    void whenMiddlePlayerDeactivated_thenSkipHimWhenShifting() throws Exception {
+    void whenMiddlePlayerFinished_thenSkipHimWhenShifting() throws Exception {
         // setup
         setField(pm, "MAX_PLAYERS", 3);
+        long turnTimeoutMs = 30_000;
+        setField(pm, "turnTimeoutMs", turnTimeoutMs);
         var collector = createCollector();
         var p1 = pm.registerPlayer("jose", collector.getListener());
         var p2 = pm.registerPlayer("juan", collector.getListener());
         var p3 = pm.registerPlayer("george", collector.getListener());
-        pm.deactivatePlayer(p2.getPlayerId());
+        p2.deactivate();
         when(random.nextInt(any(int.class))).thenReturn(0);
         pm.initializePlayer();
         collector.clear();
@@ -360,19 +285,19 @@ class PlayerManagerTest {
 
         // then
         assertThat(pm.currentPlayer()).isEqualTo(p3);
-        assertThat(collector.getActions(p1)).containsExactly(new PlayerShiftAction(p3));
-        assertThat(collector.getActions(p2)).containsExactly(new PlayerShiftAction(p3));
-        assertThat(collector.getActions(p3)).containsExactly(new PlayerShiftAction(p3));
+        assertThat(collector.getActions(p1)).containsExactly(new PlayerShiftAction(p3, turnTimeoutMs));
+        assertThat(collector.getActions(p2)).containsExactly(new PlayerShiftAction(p3, turnTimeoutMs));
+        assertThat(collector.getActions(p3)).containsExactly(new PlayerShiftAction(p3, turnTimeoutMs));
     }
 
     @Test
-    void whenFirstPlayerIsNotActive_thenInitiateToSecond() throws Exception {
+    void whenFirstPlayerIsFinished_thenInitiateToSecond() throws Exception {
         // setup
         setField(pm, "MAX_PLAYERS", 3);
         var collector = createCollector();
         var p1 = pm.registerPlayer("jose", collector.getListener());
         var p2 = pm.registerPlayer("juan", collector.getListener());
-        pm.deactivatePlayer(p1.getPlayerId());
+        p1.deactivate();
         when(random.nextInt(any(int.class))).thenReturn(0); // starting from first one
         collector.clear();
 
@@ -381,8 +306,8 @@ class PlayerManagerTest {
 
         // then
         assertThat(pm.currentPlayer()).isEqualTo(p2);
-        assertThat(collector.getActions(p1)).containsExactly(new PlayerShiftAction(p2));
-        assertThat(collector.getActions(p2)).containsExactly(new PlayerShiftAction(p2));
+        assertThat(collector.getActions(p1)).containsExactly(new PlayerShiftAction(p2, 0));
+        assertThat(collector.getActions(p2)).containsExactly(new PlayerShiftAction(p2, 0));
     }
 
     @Test
@@ -395,23 +320,24 @@ class PlayerManagerTest {
         var p3 = pm.registerPlayer("george", collector.getListener());
         when(random.nextInt(any(int.class))).thenReturn(0); // starting from first player
         collector.clear();
+        long turnTimeoutMs = 30_000;
+        setField(pm, "turnTimeoutMs", turnTimeoutMs);
 
         // when
         pm.initializePlayer(); // p1
         pm.shiftPlayer(); // p2
-        pm.deactivatePlayer(p2.getPlayerId());
+        p2.deactivate();
         pm.shiftPlayer(); // p3
         pm.shiftPlayer(); // p1
         pm.shiftPlayer(); // p3
 
         // then
         var expectedActions = of(
-                new PlayerShiftAction(p1),
-                new PlayerShiftAction(p2),
-                new DeactivateAction(p2),
-                new PlayerShiftAction(p3),
-                new PlayerShiftAction(p1),
-                new PlayerShiftAction(p3)
+                new PlayerShiftAction(p1, turnTimeoutMs),
+                new PlayerShiftAction(p2, turnTimeoutMs),
+                new PlayerShiftAction(p3, turnTimeoutMs),
+                new PlayerShiftAction(p1, turnTimeoutMs),
+                new PlayerShiftAction(p3, turnTimeoutMs)
         );
         assertThat(pm.currentPlayer()).isEqualTo(p3);
         assertThat(collector.getActions(p1)).containsExactlyElementsOf(expectedActions);
@@ -445,7 +371,7 @@ class PlayerManagerTest {
         // setup
         pm.registerPlayer("jose", VOID_LISTENER);
         var juan = pm.registerPlayer("juan", VOID_LISTENER);
-        pm.deactivatePlayer(juan.getPlayerId());
+        juan.deactivate();
 
         // when
         assertThatThrownBy(() -> pm.validateCanStart())
@@ -453,7 +379,7 @@ class PlayerManagerTest {
     }
 
     @Test
-    void whenPlayerDeactivates_andOnlyOneRemains_winAndTriggerClose() throws GameException {
+    void whenPlayerRemoved_andOnlyOneRemains_winAndTriggerClose() throws GameException {
         // setup
         var joseActions = new LinkedList<Action>();
         var juanActions = new LinkedList<Action>();
@@ -462,53 +388,53 @@ class PlayerManagerTest {
         pm.initializePlayer();
         joseActions.clear();
         juanActions.clear();
-        var closed = new AtomicBoolean(false);
-        pm.listenClose(() -> closed.set(true));
+        stage.set(RUNNING);
 
         // when
-        pm.deactivatePlayer(jose.getPlayerId());
+        pm.removePlayer(jose.getPlayerId());
 
         // then
-        assertThat(closed.get()).isTrue();
         assertThat(pm.getActiveCounter()).isZero();
         var expectedActions = of(
-                new DeactivateAction(jose),
-                new WinAction(juan),
-                new SendRankAction(new LinkedHashSet<>(of("juan"))),
-                new EndAction()
+                new RemovePlayerAction(jose, 0),
+                new EndAction(new LinkedList<>(of("juan", "jose")))
         );
         assertThat(juanActions).containsExactlyElementsOf(expectedActions);
     }
 
     @Test
-    void whenOnlyOnePlayerAndDeactivates_thenCloseTheGame() throws GameException {
+    void whenOnlyOnePlayerAndRemoved_thenCloseTheGame() throws GameException {
         // setup
         var joseActions = new LinkedList<Action>();
         var jose = pm.registerPlayer("jose", (p, e) -> joseActions.add(e));
         pm.initializePlayer();
-        var closed = new AtomicBoolean(false);
-        pm.listenClose(() -> closed.set(true));
         joseActions.clear();
 
         // when
-        pm.deactivatePlayer(jose.getPlayerId());
+        pm.removePlayer(jose.getPlayerId());
 
         // then
-        assertThat(closed.get()).isTrue();
         assertThat(pm.getActiveCounter()).isZero();
-        assertThat(joseActions).containsExactly(new DeactivateAction(jose));
+        assertThat(joseActions).isEmpty();
     }
 
     @Test
-    void whenRemovePlayerFromInitialized_thenThrowUnchecked() throws GameException {
+    void whenRemovePlayerFromInitialized_thenDisqualifyAndRemoveRecycleCards() throws Exception {
         // setup
+        setField(pm, "MAX_PLAYERS", 3);
         var jose = pm.registerPlayer("jose", VOID_LISTENER);
         pm.registerPlayer("juan", VOID_LISTENER);
+        pm.registerPlayer("Ki Hun", VOID_LISTENER);
+        jose.getHand().addAll(List.of(new Card(CardType.SEVEN, Color.HEARTS), new Card(CardType.SEVEN, Color.SPADES)));
         pm.initializePlayer();
+        stage.set(RUNNING);
 
         // when, then
-        assertThatThrownBy(() -> pm.removePlayer(jose.getPlayerId()))
-                .isInstanceOf(IllegalStateException.class);
+        pm.removePlayer(jose.getPlayerId());
+
+        assertThat(pm.getActiveCounter()).isEqualTo(2);
+        assertThat(jose.getHand()).isEmpty();
+        verify(cardManager).addToDeck(jose.getHand());
     }
 
     @Test
@@ -529,26 +455,6 @@ class PlayerManagerTest {
         var actionCollector = createCollector();
         var jose = pm.registerPlayer("jose", actionCollector.getListener());
         var juan = pm.registerPlayer("juan", actionCollector.getListener());
-        actionCollector.clear();
-
-        // when
-        pm.removePlayer(jose.getPlayerId());
-
-        // then
-        assertThat(pm.getActiveCounter()).isOne();
-        assertThat(pm.getPlayers()).containsExactly(juan);
-        assertThat(pm.getPlayerRank()).isEmpty();
-        assertThat(actionCollector.getActions(juan)).containsExactly(new RemovePlayerAction(jose));
-        assertThat(actionCollector.getActions(jose)).isEmpty();
-    }
-
-    @Test
-    void shouldRemoveNonActivePlayerFromLobby() throws GameException {
-        // setup
-        var actionCollector = createCollector();
-        var jose = pm.registerPlayer("jose", actionCollector.getListener());
-        var juan = pm.registerPlayer("juan", actionCollector.getListener());
-        pm.deactivatePlayer(jose.getPlayerId());
         actionCollector.clear();
 
         // when
