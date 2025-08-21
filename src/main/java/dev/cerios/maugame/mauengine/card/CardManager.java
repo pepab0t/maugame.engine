@@ -73,6 +73,13 @@ public class CardManager {
         }
     }
 
+    public void addToDeck(Iterable<Card> cards) {
+        cards.forEach(card -> {
+            removeFloatingCard(card);
+            deck.add(card);
+        });
+    }
+
     public Card startPile() {
         try {
             lock.writeLock().lock();
@@ -132,7 +139,7 @@ public class CardManager {
     }
 
     private void addFloatingCard(Card card) {
-        floatingCards.put(card, floatingCards.getOrDefault(card, 0) + 1);
+        floatingCards.compute(card, (k, v) -> v == null ? 1 : v + 1);
     }
 
     private void removeFloatingCard(Card card) {

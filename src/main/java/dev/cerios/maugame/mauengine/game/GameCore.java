@@ -16,6 +16,7 @@ import lombok.Getter;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static dev.cerios.maugame.mauengine.game.Stage.*;
 
@@ -26,13 +27,12 @@ class GameCore {
 
     @Getter
     private volatile GameEffect gameEffect = null;
-    @Getter
-    private volatile Stage stage = LOBBY;
+    private final AtomicReference<Stage> stage;
 
-    public GameCore(CardManager cardManager, PlayerManager playerManager) {
+    public GameCore(CardManager cardManager, PlayerManager playerManager, AtomicReference<Stage> stage) {
         this.cardManager = cardManager;
         this.playerManager = playerManager;
-        playerManager.listenClose(() -> stage = FINISH);
+        this.stage = stage;
     }
 
     public void performPlayCard(final String playerId, Card card) throws MauEngineBaseException {
@@ -40,8 +40,8 @@ class GameCore {
     }
 
     public void performPlayCard(final String playerId, Card card, Color nextColor) throws MauEngineBaseException {
-        var player = playerManager.getPlayer(playerId);
         validatePlayerPlay(playerId);
+        var player = playerManager.getPlayer(playerId);
 
         List<Card> playerHand = player.getHand();
         final int cardIndex = playerHand.indexOf(card);
@@ -80,19 +80,15 @@ class GameCore {
         actions.forEach(playerManager::distributeActionToAll);
 
         playerHand.remove(cardIndex);
-        if (playerHand.isEmpty()) {
-            var shouldContinue = playerManager.playerWin(player);
-            if (!shouldContinue) {
-                stage = FINISH;
-                return;
-            }
+        if (playerHand.isEmpty() && !playerManager.playerWin(player)) {
+            return;
         }
         playerManager.shiftPlayer();
     }
 
     public void performDraw(final String playerId) throws MauEngineBaseException {
-        var player = playerManager.getPlayer(playerId);
         validatePlayerPlay(playerId);
+        var player = playerManager.getPlayer(playerId);
 
         if (gameEffect != null)
             throw new PlayerMoveException("Cannot draw when when game effect is active.");
@@ -106,8 +102,8 @@ class GameCore {
     }
 
     public void performPass(final String playerId) throws MauEngineBaseException {
-        var player = playerManager.getPlayer(playerId);
         validatePlayerPlay(playerId);
+        var player = playerManager.getPlayer(playerId);
 
         switch (gameEffect) {
             case DrawEffect(int count) -> {
@@ -128,7 +124,7 @@ class GameCore {
 
 
     public Card start() throws GameException {
-        if (stage != LOBBY)
+        if (stage.get() != LOBBY)
             throw new GameException("The game has already started.");
 
         playerManager.validateCanStart();
@@ -142,12 +138,12 @@ class GameCore {
             }
             player.getHand().addAll(drawnCards);
         }
-        stage = RUNNING;
+        stage.set(RUNNING);
         return cardManager.startPile();
     }
 
     private void validatePlayerPlay(String playerId) throws MauEngineBaseException {
-        if (stage != RUNNING) {
+        if (stage.get() != RUNNING) {
             throw new GameException("The game not running.");
         }
         if (!playerId.equals(playerManager.currentPlayer().getPlayerId())) {
@@ -157,6 +153,10 @@ class GameCore {
 
     public int getDeckSize() {
         return cardManager.deckSize();
+    }
+
+    public Stage getStage() {
+        return stage.get();
     }
 
     public Card getPileCard() {

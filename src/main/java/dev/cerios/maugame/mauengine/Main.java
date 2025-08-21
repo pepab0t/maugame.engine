@@ -8,6 +8,8 @@ import dev.cerios.maugame.mauengine.game.GameEventListener;
 import dev.cerios.maugame.mauengine.game.GameFactory;
 
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static dev.cerios.maugame.mauengine.card.CardType.*;
 import static dev.cerios.maugame.mauengine.card.Color.*;
@@ -15,7 +17,7 @@ import static dev.cerios.maugame.mauengine.card.Color.*;
 public class Main {
     public static void main(String[] args) throws MauEngineBaseException {
         Random random = new Random(111);
-        var gameFactory = new GameFactory(random);
+        var gameFactory = new GameFactory(random, Executors.newVirtualThreadPerTaskExecutor());
         var game = gameFactory.createGame();
 
         GameEventListener playerListener = (player, event) -> {

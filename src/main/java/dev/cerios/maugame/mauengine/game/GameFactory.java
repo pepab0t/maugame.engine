@@ -5,23 +5,27 @@ import dev.cerios.maugame.mauengine.card.CardManager;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 
 @RequiredArgsConstructor
 public class GameFactory {
     private final Random random;
+    private final ExecutorService executor;
 
-    public Game createGame(Random random, int minPlayers, int maxPlayers) {
-        PlayerManager playerManager = new PlayerManager(random, minPlayers, maxPlayers);
+    public Game createGame(Random random, int minPlayers, int maxPlayers, ExecutorService executor) {
+        var stage = new AtomicReference<>(Stage.LOBBY);
         var cardManager = CardManager.create(random, new CardComparer());
-        GameCore core = new GameCore(cardManager, playerManager);
+        PlayerManager playerManager = new PlayerManager(random, minPlayers, maxPlayers, executor, stage, cardManager);
+        GameCore core = new GameCore(cardManager, playerManager, stage);
         return new Game(core, playerManager);
     }
 
     public Game createGame(int minPlayers, int maxPlayers) {
-        return createGame(random, minPlayers, maxPlayers);
+        return createGame(random, minPlayers, maxPlayers, executor);
     }
 
     public Game createGame() {
-        return this.createGame(random, 2, 2);
+        return this.createGame(random, 2, 2, executor);
     }
 }

@@ -1,24 +1,20 @@
 package dev.cerios.maugame.mauengine.game;
 
 import dev.cerios.maugame.mauengine.card.Card;
-import dev.cerios.maugame.mauengine.card.CardManager;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
-import dev.cerios.maugame.mauengine.game.action.DrawAction;
-import dev.cerios.maugame.mauengine.game.action.HiddenDrawAction;
-import dev.cerios.maugame.mauengine.game.action.StartAction;
-import dev.cerios.maugame.mauengine.game.action.StartPileAction;
+import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
 import static dev.cerios.maugame.mauengine.game.Stage.LOBBY;
 
@@ -31,12 +27,12 @@ public class Game {
     private final UUID uuid = UUID.randomUUID();
     private final GameCore core;
     private final PlayerManager playerManager;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public void playCardMove(final String playerId, Card cardToPlay) throws MauEngineBaseException {
-        var l = lock.writeLock();
+        var l = playerManager.writeLock();
         try {
             l.lock();
+            playerManager.poke(playerId);
             core.performPlayCard(playerId, cardToPlay);
         } finally {
             l.unlock();
@@ -44,9 +40,10 @@ public class Game {
     }
 
     public void playCardMove(final String playerId, Card cardToPlay, Color nextColor) throws MauEngineBaseException {
-        var l = lock.writeLock();
+        var l = playerManager.writeLock();
         try {
             l.lock();
+            playerManager.poke(playerId);
             core.performPlayCard(playerId, cardToPlay, nextColor);
         } finally {
             l.unlock();
@@ -54,9 +51,10 @@ public class Game {
     }
 
     public void playDrawMove(final String playerId) throws MauEngineBaseException {
-        var l = lock.writeLock();
+        var l = playerManager.writeLock();
         try {
             l.lock();
+            playerManager.poke(playerId);
             core.performDraw(playerId);
         } finally {
             l.unlock();
@@ -64,9 +62,10 @@ public class Game {
     }
 
     public void playPassMove(final String playerId) throws MauEngineBaseException {
-        var l = lock.writeLock();
+        var l = playerManager.writeLock();
         try {
             l.lock();
+            playerManager.poke(playerId);
             core.performPass(playerId);
         } finally {
             l.unlock();
@@ -74,7 +73,7 @@ public class Game {
     }
 
     public Player registerPlayer(String username, final GameEventListener eventListener) throws GameException {
-        var l = lock.writeLock();
+        var l = playerManager.writeLock();
         try {
             l.lock();
             if (core.getStage() != LOBBY) {
@@ -87,7 +86,7 @@ public class Game {
     }
 
     public void removePlayer(String playerId) throws GameException {
-        var l = lock.writeLock();
+        var l = playerManager.writeLock();
         try {
             l.lock();
             playerManager.removePlayer(playerId);
@@ -97,7 +96,7 @@ public class Game {
     }
 
     public GameState getGameState() {
-        var l = lock.readLock();
+        var l = playerManager.readLock();
         try {
             l.lock();
             return new GameState(
@@ -119,17 +118,11 @@ public class Game {
     }
 
     public int getFreeCapacity() {
-        var l = lock.readLock();
-        try {
-            l.lock();
-            return playerManager.getFreeCapacity();
-        } finally {
-            l.unlock();
-        }
+        return playerManager.getFreeCapacity();
     }
 
     public void start() throws MauEngineBaseException {
-        var l = lock.writeLock();
+        var l = playerManager.writeLock();
         try {
             l.lock();
             var pileCard = core.start();
@@ -150,42 +143,12 @@ public class Game {
         }
     }
 
-    public void activatePlayer(String playerId) throws GameException {
-        var l = lock.writeLock();
-        try {
-            l.lock();
-            playerManager.activatePlayer(playerId);
-        } finally {
-            l.unlock();
-        }
-    }
-
-    public void deactivatePlayer(String playerId) throws GameException {
-        var l = lock.writeLock();
-        try {
-            l.lock();
-            if (core.getStage() == LOBBY) {
-                playerManager.removePlayer(playerId);
-                return;
-            }
-            playerManager.deactivatePlayer(playerId);
-        } finally {
-            l.unlock();
-        }
-    }
-
     public Player getPlayer(String playerId) throws GameException {
-        var l = lock.readLock();
-        try {
-            l.lock();
-            return playerManager.getPlayer(playerId);
-        } finally {
-            l.unlock();
-        }
+        return playerManager.getPlayer(playerId);
     }
 
     public Stage getStage() {
-        var l = lock.readLock();
+        var l = playerManager.readLock();
         try {
             l.lock();
             return core.getStage();
@@ -195,10 +158,30 @@ public class Game {
     }
 
     public List<Player> getAllPlayers() {
-        var l = lock.readLock();
+        return playerManager.getPlayers();
+    }
+
+    public void sendCurrentStateTo(String playerId, Predicate<Player> playerMatcher) throws GameException {
+        var l = playerManager.readLock();
         try {
             l.lock();
-            return playerManager.getPlayers();
+            var player = playerManager.getPlayer(playerId);
+            if (!playerMatcher.test(player))
+                throw new GameException("No matching player.");
+            List<Action> actions = new LinkedList<>();
+
+            actions.add(new StartAction(getUuid().toString()));
+            actions.add(new StartPileAction(core.getPileCard()));
+            for (Player p : playerManager.getPlayers()) {
+                if (p.getPlayerId().equals(playerId))
+                    actions.add(new DrawAction(p.getHand()));
+                else
+                    actions.add(new HiddenDrawAction(p, p.getHand().size()));
+            }
+            actions.add(new PlayerShiftAction(playerManager.currentPlayer(), playerManager.getLastExpire(playerId)));
+            actions.add(new SendRankAction(playerManager.getPlayerRank()));
+
+            actions.forEach(player::trigger);
         } finally {
             l.unlock();
         }
