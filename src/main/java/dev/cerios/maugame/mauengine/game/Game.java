@@ -72,14 +72,14 @@ public class Game {
         }
     }
 
-    public Player registerPlayer(String username, final GameEventListener eventListener) throws GameException {
+    public String registerPlayer(String username, final GameEventListener eventListener) throws GameException {
         var l = playerManager.writeLock();
         try {
             l.lock();
             if (core.getStage() != LOBBY) {
                 throw new GameException("The game has already started.");
             }
-            return playerManager.registerPlayer(username, eventListener);
+            return playerManager.registerPlayer(username, eventListener).getPlayerId();
         } finally {
             l.unlock();
         }

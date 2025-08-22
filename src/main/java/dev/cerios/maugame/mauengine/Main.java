@@ -24,8 +24,8 @@ public class Main {
             System.out.println(player.getUsername() + ": got event " + event);
         };
 
-        var player1 = game.registerPlayer("P1", playerListener).getPlayerId();
-        var player2 = game.registerPlayer("P2", playerListener).getPlayerId();
+        var player1 = game.registerPlayer("P1", playerListener);
+        var player2 = game.registerPlayer("P2", playerListener);
 
         game.start();
 
