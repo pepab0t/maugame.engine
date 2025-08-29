@@ -264,6 +264,7 @@ class PlayerManager {
 
     /**
      * retrieves last turn expire time if present, or {@code -1}
+     *
      * @param playerId
      * @return last expire time if possible
      */
@@ -312,6 +313,16 @@ class PlayerManager {
         try {
             l.lock();
             return MAX_PLAYERS - players.size();
+        } finally {
+            l.unlock();
+        }
+    }
+
+    public boolean hasEnoughPlayers() {
+        var l = lock.readLock();
+        try {
+            l.lock();
+            return players.size() >= MIN_PLAYERS;
         } finally {
             l.unlock();
         }
