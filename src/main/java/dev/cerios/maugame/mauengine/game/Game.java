@@ -121,6 +121,10 @@ public class Game {
         return playerManager.getFreeCapacity();
     }
 
+    public boolean hasEnoughPlayers() {
+        return playerManager.hasEnoughPlayers();
+    }
+
     public void start() throws MauEngineBaseException {
         var l = playerManager.writeLock();
         try {
