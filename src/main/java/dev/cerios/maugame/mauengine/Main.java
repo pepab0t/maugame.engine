@@ -17,7 +17,7 @@ import static dev.cerios.maugame.mauengine.card.Color.*;
 public class Main {
     public static void main(String[] args) throws MauEngineBaseException {
         Random random = new Random(111);
-        var gameFactory = new GameFactory(random, Executors.newVirtualThreadPerTaskExecutor());
+        var gameFactory = new GameFactory(random);
         var game = gameFactory.createGame();
 
         GameEventListener playerListener = (player, event) -> {

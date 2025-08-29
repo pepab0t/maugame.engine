@@ -11,21 +11,20 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class GameFactory {
     private final Random random;
-    private final ExecutorService executor;
 
-    public Game createGame(Random random, int minPlayers, int maxPlayers, ExecutorService executor) {
+    public Game createGame(Random random, int minPlayers, int maxPlayers) {
         var stage = new AtomicReference<>(Stage.LOBBY);
         var cardManager = CardManager.create(random, new CardComparer());
-        PlayerManager playerManager = new PlayerManager(random, minPlayers, maxPlayers, executor, stage, cardManager);
+        PlayerManager playerManager = new PlayerManager(random, minPlayers, maxPlayers, stage, cardManager);
         GameCore core = new GameCore(cardManager, playerManager, stage);
         return new Game(core, playerManager);
     }
 
     public Game createGame(int minPlayers, int maxPlayers) {
-        return createGame(random, minPlayers, maxPlayers, executor);
+        return createGame(random, minPlayers, maxPlayers);
     }
 
     public Game createGame() {
-        return this.createGame(random, 2, 2, executor);
+        return this.createGame(random, 2, 2);
     }
 }

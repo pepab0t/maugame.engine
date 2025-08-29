@@ -39,7 +39,7 @@ class PlayerManagerTest {
     @BeforeEach
     void setUp() {
         stage = new AtomicReference<>(LOBBY);
-        pm = new PlayerManager(random, 2, 2, Executors.newVirtualThreadPerTaskExecutor(), stage, cardManager);
+        pm = new PlayerManager(random, 2, 2, stage, cardManager);
     }
 
     @Test

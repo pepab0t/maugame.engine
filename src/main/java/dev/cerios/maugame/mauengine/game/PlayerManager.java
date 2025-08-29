@@ -3,11 +3,10 @@ package dev.cerios.maugame.mauengine.game;
 import dev.cerios.maugame.mauengine.card.CardManager;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.action.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -18,6 +17,7 @@ import java.util.stream.IntStream;
 
 import static dev.cerios.maugame.mauengine.game.PlayerIdGenerator.generatePlayerId;
 
+@Slf4j
 class PlayerManager {
     public final int MAX_PLAYERS;
     public final int MIN_PLAYERS;
@@ -33,7 +33,7 @@ class PlayerManager {
     private final Map<String, FutureWithTimeout> futures = new HashMap<>();
 
     private final Random random;
-    private final ExecutorService executor;
+    private final ScheduledExecutorService executor;
     private final AtomicReference<Stage> stage;
     private final CardManager cardManager;
 
@@ -46,14 +46,13 @@ class PlayerManager {
      * @param random
      */
     public PlayerManager(Random random, AtomicReference<Stage> stage, CardManager cardManager) {
-        this(random, 2, 2, Executors.newVirtualThreadPerTaskExecutor(), stage, cardManager);
+        this(random, 2, 2,  stage, cardManager);
     }
 
     public PlayerManager(
             Random random,
             int minPlayers,
             int maxPlayers,
-            ExecutorService executor,
             AtomicReference<Stage> stage,
             CardManager cardManager
     ) {
@@ -63,7 +62,7 @@ class PlayerManager {
         this.MIN_PLAYERS = minPlayers;
         this.MAX_PLAYERS = maxPlayers;
         this.players = new ArrayList<>(MAX_PLAYERS);
-        this.executor = executor;
+        this.executor = Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory());
         this.stage = stage;
         this.cardManager = cardManager;
     }
@@ -239,13 +238,13 @@ class PlayerManager {
                 currentPlayerIndex.incrementAndGet();
             var nextPlayer = findNextPlayer();
             var expireTime = System.currentTimeMillis() + turnTimeoutMs;
-            var timeoutFuture = executor.submit(() -> {
+            var timeoutFuture = executor.schedule(() -> {
                 try {
-                    Thread.sleep(expireTime - System.currentTimeMillis());
                     removePlayer(nextPlayer.getPlayerId());
-                } catch (Exception ignore) {
+                } catch (GameException e) {
+                    log.warn(e.getMessage(), e);
                 }
-            });
+            }, turnTimeoutMs, TimeUnit.MILLISECONDS);
             futures.put(nextPlayer.getPlayerId(), new FutureWithTimeout(timeoutFuture, expireTime));
             var action = new PlayerShiftAction(nextPlayer, expireTime);
             distributeActionToAll(action);
