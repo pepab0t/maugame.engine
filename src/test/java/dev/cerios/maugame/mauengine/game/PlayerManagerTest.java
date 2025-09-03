@@ -35,11 +35,13 @@ class PlayerManagerTest {
     private Random random;
     @Mock
     private CardManager cardManager;
+    private UUID gameId;
 
     @BeforeEach
     void setUp() {
+        gameId = UUID.randomUUID();
         stage = new AtomicReference<>(LOBBY);
-        pm = new PlayerManager(random, 2, 2, stage, cardManager);
+        pm = new PlayerManager(gameId, random, 2, 2, stage, cardManager);
     }
 
     @Test
@@ -55,7 +57,7 @@ class PlayerManagerTest {
         assertThat(pm.getPlayers()).containsExactly(registered);
         assertThat(pm.getActiveCounter()).isOne();
         assertThat(registered.isFinished()).isFalse();
-        assertThat(events).containsExactly(new RegisterAction(registered, true), new PlayersAction(of(registered)));
+        assertThat(events).containsExactly(new RegisterAction(gameId, registered, true), new PlayersAction(of(registered)));
     }
 
     @Test
@@ -88,11 +90,12 @@ class PlayerManagerTest {
         assertThat(pm.getPlayers()).containsExactly(alreadyRegistered, registered);
         assertThat(pm.getActiveCounter()).isEqualTo(2);
         assertThat(actions.get(alreadyRegistered.getPlayerId())).containsExactly(
-                new RegisterAction(alreadyRegistered, true),
-                new PlayersAction(of(alreadyRegistered)), new RegisterAction(registered, false)
+                new RegisterAction(gameId, alreadyRegistered, true),
+                new PlayersAction(of(alreadyRegistered)),
+                new RegisterAction(gameId, registered, false)
         );
         assertThat(actions.get(registered.getPlayerId())).containsExactly(
-                new RegisterAction(registered, true),
+                new RegisterAction(gameId, registered, true),
                 new PlayersAction(of(alreadyRegistered, registered))
         );
     }

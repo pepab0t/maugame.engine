@@ -19,6 +19,7 @@ import static dev.cerios.maugame.mauengine.game.PlayerIdGenerator.generatePlayer
 
 @Slf4j
 class PlayerManager {
+    private final UUID gameId;
     public final int MAX_PLAYERS;
     public final int MIN_PLAYERS;
 
@@ -42,14 +43,13 @@ class PlayerManager {
 
     /**
      * initiates with maxPlayers = minPlayers = 2
-     *
-     * @param random
      */
-    public PlayerManager(Random random, AtomicReference<Stage> stage, CardManager cardManager) {
-        this(random, 2, 2,  stage, cardManager);
+    public PlayerManager(UUID gameId, Random random, AtomicReference<Stage> stage, CardManager cardManager) {
+        this(gameId, random, 2, 2,  stage, cardManager);
     }
 
     public PlayerManager(
+            UUID gameId,
             Random random,
             int minPlayers,
             int maxPlayers,
@@ -58,6 +58,7 @@ class PlayerManager {
     ) {
         if (minPlayers > maxPlayers)
             throw new IllegalArgumentException("Min players must be less than max players.");
+        this.gameId = gameId;
         this.random = random;
         this.MIN_PLAYERS = minPlayers;
         this.MAX_PLAYERS = maxPlayers;
@@ -101,8 +102,8 @@ class PlayerManager {
             var player = new Player(generatePlayerId(), username, eventListener, activeCounter::decrementAndGet);
             players.add(player);
             activeCounter.incrementAndGet();
-            distributeActionExcludingPlayer(new RegisterAction(player, false), player.getPlayerId());
-            player.trigger(new RegisterAction(player, true));
+            distributeActionExcludingPlayer(new RegisterAction(gameId, player, false), player.getPlayerId());
+            player.trigger(new RegisterAction(gameId, player, true));
             player.trigger(new PlayersAction(new ArrayList<>(players)));
             return player;
         } finally {

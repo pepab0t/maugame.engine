@@ -24,7 +24,7 @@ import static dev.cerios.maugame.mauengine.game.Stage.LOBBY;
 public class Game {
     @Getter
     @EqualsAndHashCode.Include
-    private final UUID uuid = UUID.randomUUID();
+    private final UUID uuid;
     private final GameCore core;
     private final PlayerManager playerManager;
 
