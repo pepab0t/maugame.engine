@@ -28,22 +28,5 @@ public class Main {
         var player2 = game.registerPlayer("P2", playerListener);
 
         game.start();
-
-        System.out.println("---");
-        game.playCardMove(player2, new Card(SEVEN, DIAMONDS));
-        System.out.println("---");
-        game.playPassMove(player1);
-        System.out.println("---");
-        game.playCardMove(player2, new Card(SEVEN, SPADES));
-        System.out.println("---");
-        game.playPassMove(player1);
-        System.out.println("---");
-        game.playCardMove(player2, new Card(NINE, SPADES));
-        System.out.println("---");
-        game.playCardMove(player1, new Card(JACK, SPADES));
-        System.out.println("---");
-        game.playCardMove(player2, new Card(JACK, DIAMONDS));
-        System.out.println("---");
-        System.out.println(game.getGameState());
     }
 }
