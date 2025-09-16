@@ -20,6 +20,9 @@ public interface Action {
         PLAYERS,
         START_PILE,
         REMOVE_PLAYER,
-        DISQUALIFIED;
+        DISQUALIFIED,
+        READY,
+        UNREADY,
+        DESTROY
     }
 }

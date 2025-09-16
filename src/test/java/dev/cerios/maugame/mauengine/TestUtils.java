@@ -1,7 +1,7 @@
 package dev.cerios.maugame.mauengine;
 
 import dev.cerios.maugame.mauengine.game.GameEventListener;
-import dev.cerios.maugame.mauengine.game.Player;
+import dev.cerios.maugame.mauengine.player.Player;
 import dev.cerios.maugame.mauengine.game.action.Action;
 import lombok.Getter;
 
