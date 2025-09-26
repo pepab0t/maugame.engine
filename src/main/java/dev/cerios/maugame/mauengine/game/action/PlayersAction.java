@@ -1,6 +1,6 @@
 package dev.cerios.maugame.mauengine.game.action;
 
-import dev.cerios.maugame.mauengine.game.Player;
+import dev.cerios.maugame.mauengine.player.Player;
 
 import java.util.List;
 

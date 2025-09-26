@@ -1,6 +1,7 @@
-package dev.cerios.maugame.mauengine.game;
+package dev.cerios.maugame.mauengine.player;
 
 import dev.cerios.maugame.mauengine.card.Card;
+import dev.cerios.maugame.mauengine.game.GameEventListener;
 import dev.cerios.maugame.mauengine.game.action.Action;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,8 +20,9 @@ public class Player {
     private final String username;
     @Getter
     private boolean finished = false;
-    @Getter(AccessLevel.PACKAGE)
+    @Getter
     private final List<Card> hand = new ArrayList<>();
+    @Getter(AccessLevel.PACKAGE)
     private final GameEventListener eventListener;
     private final Runnable countDown;
 

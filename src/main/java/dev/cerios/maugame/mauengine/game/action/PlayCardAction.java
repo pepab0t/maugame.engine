@@ -2,7 +2,7 @@ package dev.cerios.maugame.mauengine.game.action;
 
 import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.Color;
-import dev.cerios.maugame.mauengine.game.Player;
+import dev.cerios.maugame.mauengine.player.Player;
 
 public record PlayCardAction(Player player, Card card, Color nextColor) implements Action {
 
