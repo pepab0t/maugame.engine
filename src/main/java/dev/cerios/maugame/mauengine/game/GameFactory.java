@@ -22,7 +22,7 @@ public class GameFactory {
         var factory = new PlayerStateFactory(minPlayers, maxPlayers, random, globalLock, turnTimeoutMs);
         var playerContext = new PlayerContext(factory);
         var core = new GameCore(CardManager.create(random, new CardComparer()), playerContext);
-        return new Game(core);
+        return new Game(core, playerContext, globalLock);
     }
 
     public Game createGame(int minPlayers, int maxPlayers, long turnTimeoutMs) {
