@@ -124,6 +124,10 @@ public class PlayerLobbyState implements PlayerReadyStorage {
         }
     }
 
+    public boolean hasFreeCapacity() {
+        return players.size() <  maxPlayers;
+    }
+
     private boolean hasEnoughPlayers() {
         return players.size() >= minPlayers;
     }

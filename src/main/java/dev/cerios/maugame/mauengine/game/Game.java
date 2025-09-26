@@ -7,6 +7,7 @@ import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
 import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.player.Player;
 import dev.cerios.maugame.mauengine.player.PlayerContext;
+import dev.cerios.maugame.mauengine.player.PlayerLobbyState;
 import dev.cerios.maugame.mauengine.player.PlayerReadyStorage;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
@@ -118,6 +119,16 @@ public class Game {
             } else {
                 throw new NotSupportedOperation("set ready", playerContext.getPlayers().getClass());
             }
+        } finally {
+            l.unlock();
+        }
+    }
+
+    public boolean hasFreeCapacity() {
+        var l = lock.readLock();
+        try {
+            l.lock();
+            return playerContext.getPlayers() instanceof PlayerLobbyState players && players.hasFreeCapacity();
         } finally {
             l.unlock();
         }
