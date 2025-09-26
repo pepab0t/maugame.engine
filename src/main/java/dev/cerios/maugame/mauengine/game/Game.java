@@ -4,7 +4,10 @@ import dev.cerios.maugame.mauengine.card.Card;
 import dev.cerios.maugame.mauengine.card.Color;
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.exception.MauEngineBaseException;
+import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.player.Player;
+import dev.cerios.maugame.mauengine.player.PlayerContext;
+import dev.cerios.maugame.mauengine.player.PlayerReadyStorage;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +26,8 @@ public class Game {
 
     @EqualsAndHashCode.Include
     private final GameCore core;
-
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final PlayerContext playerContext;
+    private final ReadWriteLock lock;
 
     public void playCardMove(final String playerId, Card cardToPlay) throws MauEngineBaseException {
         var l = lock.writeLock();
@@ -101,6 +104,20 @@ public class Game {
         try {
             l.lock();
             return core.getPlayers();
+        } finally {
+            l.unlock();
+        }
+    }
+
+    public void setReady(String playerId) throws GameException {
+        var l = lock.writeLock();
+        try {
+            l.lock();
+            if (playerContext.getPlayers() instanceof PlayerReadyStorage players) {
+                players.setReady(playerId);
+            } else {
+                throw new NotSupportedOperation("set ready", playerContext.getPlayers().getClass());
+            }
         } finally {
             l.unlock();
         }
