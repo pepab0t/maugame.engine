@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -13,11 +15,10 @@ public class PlayerContext {
     @Getter
     private PlayerStorage players;
     private Consumer<Player> timeoutListener;
-    private Consumer<UUID> startListener;
+    private final List<Consumer<UUID>> startListeners = new LinkedList<>();
 
     public PlayerContext(PlayerStateFactory factory) {
         this.factory = factory;
-        this.setLobbyState();
     }
 
     public void listenPlayerTimeout(Consumer<Player> listener) {
@@ -25,14 +26,13 @@ public class PlayerContext {
     }
 
     public void listenStartGame(Consumer<UUID> startListener) {
-        this.startListener = startListener;
+        this.startListeners.add(startListener);
     }
 
     public void setLobbyState() {
         var state = factory.createLobbyState(this::setRunningState);
-        if (startListener != null)
-            state.listenStart(startListener);
-        else throw new RuntimeException("Wrong setup, no start listener.");
+        state.listenStart(startListeners);
+        if (startListeners.isEmpty()) throw new RuntimeException("Wrong setup, no start listener.");
         players = state;
     }
 
@@ -50,9 +50,8 @@ public class PlayerContext {
     public void setFinishState(Collection<Player> playerCollection) {
         if (players instanceof PlayerRunningState) {
             var finish = factory.createFinishState(playerCollection, this::setRunningState);
-            if (startListener != null)
-                finish.listenStart(startListener);
-            else throw new RuntimeException("Wrong setup, no start listener.");
+            finish.listenStart(startListeners);
+            if (startListeners.isEmpty()) throw new RuntimeException("Wrong setup, no start listener.");
             players = finish;
         } else {
             throw new RuntimeException(String.format("Invalid state `%s` for transition to finish state.", players.getClass().getSimpleName()));

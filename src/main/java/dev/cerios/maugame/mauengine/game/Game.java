@@ -8,20 +8,33 @@ import dev.cerios.maugame.mauengine.exception.NotSupportedOperation;
 import dev.cerios.maugame.mauengine.player.PlayerContext;
 import dev.cerios.maugame.mauengine.player.PlayerLobbyState;
 import dev.cerios.maugame.mauengine.player.PlayerReadyStorage;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 
-import java.util.Collection;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 
-@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class Game {
-
+    private final UUID gameId;
     private final GameCore core;
     private final PlayerContext playerContext;
     private final ReadWriteLock lock;
+
+    private final List<Consumer<UUID>> startListeners = Collections.synchronizedList(new LinkedList<>());
+
+    Game(UUID gameId, GameCore core, PlayerContext playerContext, ReadWriteLock lock) {
+        this.gameId = gameId;
+        this.core = core;
+        this.playerContext = playerContext;
+        this.lock = lock;
+
+        this.playerContext.listenStartGame(uuid -> startListeners.forEach(l -> l.accept(uuid)));
+    }
+
+    public void listenStart(Consumer<UUID> startListener) {
+        this.startListeners.add(startListener);
+    }
 
     public void playCardMove(final String playerId, Card cardToPlay) throws MauEngineBaseException {
         var l = lock.writeLock();
@@ -117,14 +130,28 @@ public class Game {
         }
     }
 
-    public boolean hasFreeCapacity() {
+    public int getFreeCapacity() {
         var l = lock.readLock();
         try {
             l.lock();
-            return playerContext.getPlayers() instanceof PlayerLobbyState players && players.hasFreeCapacity();
+            return playerContext.getPlayers() instanceof PlayerLobbyState players ? players.getFreeCapacity() : 0;
         } finally {
             l.unlock();
         }
+    }
+
+    public int getPlayerCount() {
+        var l = lock.readLock();
+        try {
+            l.lock();
+            return playerContext.getPlayers().getPlayers().size();
+        } finally {
+            l.unlock();
+        }
+    }
+
+    public UUID getId() {
+        return gameId;
     }
 
     public void sendCurrentStateTo(String playerId, Predicate<GamePlayer> playerMatcher) throws GameException {

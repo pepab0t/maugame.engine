@@ -82,7 +82,7 @@ class PlayerLobbyStateTest {
             assertEquals(1, playerLobbyState.getPlayers().size());
 
             // Verify published actions
-            verify(actionPublisher).publishActionToAll(any(RegisterAction.class));
+            verify(actionPublisher).publishActionExcludingPlayer(any(RegisterAction.class), anyString());
             verify(actionPublisher).publishAction(eq(result), any(RegisterAction.class));
             verify(actionPublisher).publishAction(eq(result), any(PlayersAction.class));
         }
@@ -132,7 +132,7 @@ class PlayerLobbyStateTest {
             playerLobbyState.registerPlayer("user2", eventListener2);
 
             // Then
-            verify(actionPublisher).publishActionToAll(any(UnreadyAction.class));
+            verify(actionPublisher).publishActionExcludingPlayer(any(UnreadyAction.class), anyString());
         }
     }
 

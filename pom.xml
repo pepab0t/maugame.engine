@@ -9,7 +9,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>maugame-engine</artifactId>
+    <artifactId>engine</artifactId>
     <packaging>jar</packaging>
 
     <name>game-engine</name>

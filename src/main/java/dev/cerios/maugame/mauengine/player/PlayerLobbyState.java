@@ -2,16 +2,15 @@ package dev.cerios.maugame.mauengine.player;
 
 import dev.cerios.maugame.mauengine.exception.GameException;
 import dev.cerios.maugame.mauengine.game.GameEventListener;
-import dev.cerios.maugame.mauengine.game.action.PlayersAction;
-import dev.cerios.maugame.mauengine.game.action.ReadyAction;
-import dev.cerios.maugame.mauengine.game.action.RegisterAction;
-import dev.cerios.maugame.mauengine.game.action.UnreadyAction;
+import dev.cerios.maugame.mauengine.game.action.*;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.ListOrderedMap;
 
 import java.util.*;
 import java.util.function.Consumer;
 
+@Slf4j
 public class PlayerLobbyState implements PlayerReadyStorage {
     private final int minPlayers;
     private final int maxPlayers;
@@ -53,19 +52,18 @@ public class PlayerLobbyState implements PlayerReadyStorage {
             throw new GameException("Too many players");
         }
         var player = new Player(PlayerIdGenerator.generatePlayerId(), username, eventListener);
-
-        for (var r : readyStates.values()) {
-            r.set(false);
-            actionPublisher.publishActionToAll(new UnreadyAction(r.getPlayer().getUsername()));
-        }
-        actionPublisher.publishActionToAll(new RegisterAction(gameId, player, false));
+        var playerId = player.getPlayerId();
 
         usernames.add(username);
-        players.put(player.getPlayerId(), player);
-        readyStates.put(player.getPlayerId(), new Ready(player));
+        players.put(playerId, player);
+        readyStates.put(playerId, new Ready(player));
 
+        actionPublisher.publishActionExcludingPlayer(new RegisterAction(gameId, player, false), playerId);
         actionPublisher.publishAction(player, new RegisterAction(gameId, player, true));
         actionPublisher.publishAction(player, new PlayersAction(getPlayers()));
+        for (var r : readyStates.values()) {
+            if (r.set(false)) actionPublisher.publishActionExcludingPlayer(new UnreadyAction(r.getPlayer().getUsername()), playerId);
+        }
         return player;
     }
 
@@ -79,9 +77,10 @@ public class PlayerLobbyState implements PlayerReadyStorage {
         readyStates.remove(playerId);
 
         for (var ready : readyStates.values()) {
-            ready.set(false);
-            actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
+            if (ready.set(false))
+                actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
         }
+        actionPublisher.publishActionToAll(new RemovePlayerAction(player, 0));
     }
 
     @Override
@@ -103,12 +102,20 @@ public class PlayerLobbyState implements PlayerReadyStorage {
         if (ready == null)
             throw new GameException("Player `" + playerId + "` not found");
 
-        ready.set(true);
+        if (!ready.set(true)){
+            log.trace("game {}: player `{}` ready status true not changed", gameId, playerId);
+            return;
+        }
+
         actionPublisher.publishActionToAll(new ReadyAction(ready.getPlayer().getUsername()));
+
+        log.debug("{}: {} ready", gameId, ready.getPlayer());
 
         // at least one is not ready
         if (!hasEnoughPlayers() || readyStates.values().stream().anyMatch(r -> !r.get()))
             return;
+
+        log.debug("game {} ready to start", gameId);
 
         triggerStart();
         stateSwitcher.accept(getPlayers());
@@ -118,14 +125,19 @@ public class PlayerLobbyState implements PlayerReadyStorage {
         startListeners.add(listener);
     }
 
+    public void listenStart(List<Consumer<UUID>> listeners) {
+        startListeners.addAll(listeners);
+    }
+
     private void triggerStart() {
+        System.out.println(startListeners);
         for (var listener : startListeners) {
             listener.accept(gameId);
         }
     }
 
-    public boolean hasFreeCapacity() {
-        return players.size() <  maxPlayers;
+    public int getFreeCapacity() {
+        return maxPlayers - players.size();
     }
 
     private boolean hasEnoughPlayers() {

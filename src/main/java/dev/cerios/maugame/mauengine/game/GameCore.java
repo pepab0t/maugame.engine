@@ -15,7 +15,6 @@ import dev.cerios.maugame.mauengine.player.PlayerContext;
 import dev.cerios.maugame.mauengine.player.PlayerRunningState;
 import lombok.Getter;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -139,6 +138,7 @@ class GameCore {
 
 
     private void start(UUID gameId) {
+        System.out.println("start called");
         var players = playerContext.getPlayers();
 
         for (Player player : players.getPlayers()) {

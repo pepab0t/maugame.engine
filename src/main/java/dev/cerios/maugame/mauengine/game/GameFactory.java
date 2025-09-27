@@ -18,11 +18,14 @@ public class GameFactory {
     private final Random random;
 
     public Game createGame(Random random, int minPlayers, int maxPlayers, long turnTimeoutMs) {
+        var gameId = UUID.randomUUID();
         var globalLock = new ReentrantReadWriteLock(true);
-        var factory = new PlayerStateFactory(minPlayers, maxPlayers, random, globalLock, turnTimeoutMs);
+        var factory = new PlayerStateFactory(gameId, minPlayers, maxPlayers, random, globalLock, turnTimeoutMs);
         var playerContext = new PlayerContext(factory);
         var core = new GameCore(CardManager.create(random, new CardComparer()), playerContext);
-        return new Game(core, playerContext, globalLock);
+        var game = new Game(gameId, core, playerContext, globalLock);
+        playerContext.setLobbyState();
+        return game;
     }
 
     public Game createGame(int minPlayers, int maxPlayers, long turnTimeoutMs) {
