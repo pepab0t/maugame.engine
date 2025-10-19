@@ -10,8 +10,10 @@ class Ready {
     @Getter
     private final Player player;
 
-    public void set(boolean ready) {
+    public boolean set(boolean ready) {
+        var changed = ready != this.ready;
         this.ready = ready;
+        return changed;
     }
 
     public boolean get() {

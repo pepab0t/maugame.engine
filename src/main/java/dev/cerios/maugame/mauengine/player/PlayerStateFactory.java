@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 @RequiredArgsConstructor
 public class PlayerStateFactory {
-    private final UUID gameId = UUID.randomUUID();
+    private final UUID gameId;
     private final int minPlayers;
     private final int maxPlayers;
     private final Random random;

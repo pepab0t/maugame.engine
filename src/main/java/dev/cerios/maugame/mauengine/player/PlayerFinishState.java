@@ -8,11 +8,13 @@ import dev.cerios.maugame.mauengine.game.action.ReadyAction;
 import dev.cerios.maugame.mauengine.game.action.RemovePlayerAction;
 import dev.cerios.maugame.mauengine.game.action.UnreadyAction;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.ListOrderedMap;
 
 import java.util.*;
 import java.util.function.Consumer;
 
+@Slf4j
 public class PlayerFinishState implements PlayerReadyStorage {
     private final UUID gameId;
     private final int minPlayers;
@@ -46,8 +48,7 @@ public class PlayerFinishState implements PlayerReadyStorage {
     @Override
     public void removePlayer(String playerId) {
         var player = players.remove(playerId);
-        if (player == null)
-            return;
+        if (player == null) return;
 
         readyStates.remove(playerId);
         actionPublisher.publishActionToAll(new RemovePlayerAction(player));
@@ -58,8 +59,8 @@ public class PlayerFinishState implements PlayerReadyStorage {
             readyStates.clear();
         } else {
             for (var ready : readyStates.values()) {
-                ready.set(false);
-                actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
+                if (ready.set(false))
+                    actionPublisher.publishActionToAll(new UnreadyAction(ready.getPlayer().getUsername()));
             }
         }
     }
@@ -67,8 +68,7 @@ public class PlayerFinishState implements PlayerReadyStorage {
     @Override
     public Player getPlayer(String playerId) throws GameException {
         var p = players.get(playerId);
-        if (p == null)
-            throw new GameException("Player " + playerId + " not found.");
+        if (p == null) throw new GameException("Player " + playerId + " not found.");
         return p;
     }
 
@@ -84,11 +84,13 @@ public class PlayerFinishState implements PlayerReadyStorage {
             throw new GameException("Player " + playerId + " not found.");
         }
 
-        ready.set(true);
+        if (!ready.set(true)) {
+            log.trace("game {}: players {} ready status true not changed", gameId, playerId);
+            return;
+        }
         actionPublisher.publishActionToAll(new ReadyAction(ready.getPlayer().getUsername()));
 
-        if (!hasEnoughPlayers() || readyStates.values().stream().anyMatch(r -> !r.get()))
-            return;
+        if (!hasEnoughPlayers() || readyStates.values().stream().anyMatch(r -> !r.get())) return;
 
         triggerStart();
         stateSwitcher.accept(getPlayers());
@@ -96,6 +98,10 @@ public class PlayerFinishState implements PlayerReadyStorage {
 
     public void listenStart(Consumer<UUID> startListener) {
         startListeners.add(startListener);
+    }
+
+    public void listenStart(List<Consumer<UUID>> startListeners) {
+        this.startListeners.addAll(startListeners);
     }
 
     private void triggerStart() {

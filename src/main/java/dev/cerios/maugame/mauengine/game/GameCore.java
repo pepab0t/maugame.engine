@@ -15,7 +15,6 @@ import dev.cerios.maugame.mauengine.player.PlayerContext;
 import dev.cerios.maugame.mauengine.player.PlayerRunningState;
 import lombok.Getter;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -139,6 +138,7 @@ class GameCore {
 
 
     private void start(UUID gameId) {
+        System.out.println("start called");
         var players = playerContext.getPlayers();
 
         for (Player player : players.getPlayers()) {
@@ -166,7 +166,7 @@ class GameCore {
         return cardManager.peekPile();
     }
 
-    public void sendCurrentStateTo(String playerId, Predicate<Player> playerMatcher) throws GameException {
+    public void sendCurrentStateTo(String playerId, Predicate<GamePlayer> playerMatcher) throws GameException {
         if (playerContext.getPlayers() instanceof PlayerRunningState players) {
             var player = players.getPlayer(playerId);
             if (!playerMatcher.test(player))
@@ -186,22 +186,6 @@ class GameCore {
             final var publisher = players.getActionPublisher();
             actions.forEach(a -> publisher.publishAction(player, a));
         }
-    }
-
-    public Collection<Player> getPlayers() {
-        return playerContext.getPlayers().getPlayers();
-    }
-
-    public Player registerPlayer(String username, GameEventListener eventListener) throws GameException {
-        return playerContext.getPlayers().registerPlayer(username, eventListener);
-    }
-
-    public void removePlayer(String playerId) throws GameException {
-        playerContext.getPlayers().removePlayer(playerId);
-    }
-
-    public Player getPlayer(String playerId) throws GameException {
-        return playerContext.getPlayers().getPlayer(playerId);
     }
 
     private PlayerRunningState getRunningState() throws NotSupportedOperation {

@@ -1,6 +1,7 @@
 package dev.cerios.maugame.mauengine;
 
 import dev.cerios.maugame.mauengine.game.GameEventListener;
+import dev.cerios.maugame.mauengine.game.GamePlayer;
 import dev.cerios.maugame.mauengine.player.Player;
 import dev.cerios.maugame.mauengine.game.action.Action;
 import lombok.Getter;
@@ -28,7 +29,7 @@ public class TestUtils {
     }
 
     public static class ActionCollector {
-        private final Map<Player, List<Action>> actions = new HashMap<>();
+        private final Map<GamePlayer, List<Action>> actions = new HashMap<>();
         @Getter
         private final GameEventListener listener = (p, e) -> {
             var playerActions = actions.putIfAbsent(p, new LinkedList<>());
